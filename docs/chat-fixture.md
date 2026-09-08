@@ -8,7 +8,7 @@ is introduced. Host-projected history and events remain opaque for now; the
 normalized rendering model is a separate unfinished part of the plan.
 
 ```js
-import { createFixtureChatAdapter } from '@agenticos/gadget-sdk';
+import { createFixtureChatAdapter } from '@agenticos-dev/gadget-sdk';
 
 const chat = createFixtureChatAdapter({
   context: { workspaceId: 'fixture-workspace', conversationId: 'fixture-chat' },

@@ -21,10 +21,10 @@ await mkdir(consumer);
 await writeFile(resolve(consumer, 'package.json'), JSON.stringify({ name: 'isolated-devkit-test', private: true, type: 'module' }));
 const installed = spawnSync('npm', ['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', ...tarballs], { cwd: consumer, encoding: 'utf8', shell: false });
 assert.equal(installed.status, 0, installed.stderr);
-const modulePath = resolve(consumer, 'node_modules/@agenticos/gadget-devkit/src/index.js');
+const modulePath = resolve(consumer, 'node_modules/@agenticos-dev/gadget-devkit/src/index.js');
 const devkit = await import(pathToFileURL(modulePath));
-const codec = await import(pathToFileURL(resolve(consumer, 'node_modules/@agenticos/gadget-archive-tools/src/index.js')));
-const contract = await import(pathToFileURL(resolve(consumer, 'node_modules/@agenticos/gadget-contract/src/index.js')));
+const codec = await import(pathToFileURL(resolve(consumer, 'node_modules/@agenticos-dev/gadget-archive-tools/src/index.js')));
+const contract = await import(pathToFileURL(resolve(consumer, 'node_modules/@agenticos-dev/gadget-contract/src/index.js')));
 const definition = { schemaVersion: 'gadget.definition.v1', key: 'test_notes', version: 1, title: 'Test notes', runtimeTier: 'declarative', distribution: 'installed', fields: [{ key: 'title', kind: 'text', label: 'Title' }], mutable: ['title'], commands: ['state.set'], actions: [], views: [{ key: 'main', label: 'Notes', layout: 'full', widgets: [{ id: 'title', type: 'rich_text', title: 'Title', binding: 'title' }] }] };
 let serial = 0;
 async function fixture(overrides = {}) {
@@ -184,7 +184,7 @@ test('init rejects secret/hidden entries and symlinks before creating destinatio
 });
 
 test('CLI rejects unknown and duplicate options', () => {
-  const cli = resolve(consumer, 'node_modules/@agenticos/gadget-devkit/src/cli.mjs');
+  const cli = resolve(consumer, 'node_modules/@agenticos-dev/gadget-devkit/src/cli.mjs');
   for (const args of [['check', consumer, '--no-sandbox'], ['check', consumer, '--trust-source', '--trust-source'], ['pack', consumer, '--output']]) {
     const result = spawnSync(process.execPath, [cli, ...args], { encoding: 'utf8', shell: false });
     assert.equal(result.status, 1);

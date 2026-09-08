@@ -50,7 +50,7 @@ test("pending approvals/private packages fail closed", async t => {
 test("dependency closure refuses private paths and mismatched internal versions", async t => {
   const { root, manifests, save } = await fixture(t);
   await save("packages/devkit/package.json", { ...manifests.get("devkit"), dependencies: {
-    "@agenticos/gadget-contract": "0.2.0", "@private/api": "file:../../api"
+    "@agenticos-dev/gadget-contract": "0.2.0", "@private/api": "file:../../api"
   } });
   const result = await inspectRelease(root);
   assert.ok(result.blockers.some(row => row.code === "dependency_portability"));
@@ -60,8 +60,8 @@ test("dependency closure refuses private paths and mismatched internal versions"
 test("peer entries cannot conceal runtime dependency failures", async t => {
   const { root, manifests, save } = await fixture(t);
   await save("packages/devkit/package.json", { ...manifests.get("devkit"),
-    dependencies: { "@agenticos/gadget-contract": "file:../../private-contract" },
-    peerDependencies: { "@agenticos/gadget-contract": "0.1.0" }
+    dependencies: { "@agenticos-dev/gadget-contract": "file:../../private-contract" },
+    peerDependencies: { "@agenticos-dev/gadget-contract": "0.1.0" }
   });
   const result = await inspectRelease(root);
   assert.equal(result.ready, false);
@@ -72,8 +72,8 @@ test("peer entries cannot conceal runtime dependency failures", async t => {
 test("optional dependencies cannot introduce private paths or undeclared internal packages", async t => {
   const { root, manifests, save } = await fixture(t);
   await save("packages/devkit/package.json", { ...manifests.get("devkit"), optionalDependencies: {
-    "@private/api": "file:../../api", "@agenticos/private-contract": "0.1.0",
-    "@agenticos/gadget-contract": "0.2.0"
+    "@private/api": "file:../../api", "@agenticos-dev/private-contract": "0.1.0",
+    "@agenticos-dev/gadget-contract": "0.2.0"
   } });
   const result = await inspectRelease(root);
   assert.equal(result.ready, false);

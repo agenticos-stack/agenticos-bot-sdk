@@ -45,7 +45,7 @@ test('packed public declarations work without private repos in NodeNext and Bund
     for (const manifest of manifests.values()) {
       for (const [dependency, version] of Object.entries(manifest.dependencies ?? {})) {
         assert.doesNotMatch(version, /^(file:|workspace:|link:|git)/);
-        if (dependency.startsWith('@agenticos/')) {
+        if (dependency.startsWith('@agenticos-dev/')) {
           assert.ok(manifests.has(dependency), `Internal dependency ${dependency} belongs to the public closure`);
           assert.equal(version, manifests.get(dependency).version, 'Exact internal dependency version');
         } else assert.equal(dependency, 'yjs', 'Only the reviewed codec dependency belongs to this runtime closure');
@@ -62,7 +62,7 @@ test('packed public declarations work without private repos in NodeNext and Bund
     assert.match(cli.stderr, /trust-source/, 'Installed bin retains the explicit-trust refusal');
     const lock = JSON.parse(await readFile(join(consumer, 'package-lock.json'), 'utf8'));
     for (const path of Object.keys(lock.packages)) {
-      if (path.startsWith('node_modules/@agenticos/')) {
+      if (path.startsWith('node_modules/@agenticos-dev/')) {
         assert.ok(manifests.has(path.slice('node_modules/'.length)), `No private AgenticOS dependency ${path}`);
       }
     }
@@ -81,13 +81,13 @@ test('packed public declarations work without private repos in NodeNext and Bund
     }
     const result = execFileSync(process.execPath, ['--input-type=module', '-e', `
       import assert from 'node:assert/strict';
-      import * as codec from '@agenticos/gadget-archive-tools';
-      import * as contract from '@agenticos/gadget-contract';
-      import * as devkit from '@agenticos/gadget-devkit';
+      import * as codec from '@agenticos-dev/gadget-archive-tools';
+      import * as contract from '@agenticos-dev/gadget-contract';
+      import * as devkit from '@agenticos-dev/gadget-devkit';
       assert.equal(typeof codec.readBlueprintArchive, 'function');
       assert.equal(contract.validateGadgetDefinition({}).ok, false);
       assert.deepEqual(devkit.PACKAGE_CHECK_STEPS, ['test', 'build', 'validate']);
-      assert.ok(import.meta.resolve('@agenticos/gadget-shell/GadgetSplitView.svelte').endsWith('/GadgetSplitView.svelte'));
+      assert.ok(import.meta.resolve('@agenticos-dev/gadget-shell/GadgetSplitView.svelte').endsWith('/GadgetSplitView.svelte'));
       console.log('Public package entries resolve');
     `], { cwd: consumer, env, encoding: 'utf8', timeout: 10000 });
     assert.match(result, /Public package entries resolve/);

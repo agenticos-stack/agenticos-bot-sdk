@@ -27,13 +27,13 @@ test("an empty consumer installs and imports only the packed SDK, offline", asyn
     assert.deepEqual(packed.files.map(file => file.path).sort(), ["README.md", "index.d.ts", "index.js", "package.json"]);
     await writeFile(join(consumer, "package.json"), JSON.stringify({ name: "isolated-consumer", private: true, type: "module" }));
     npm(["install", join(scratch, packed.filename), "--offline", "--ignore-scripts", "--no-audit", "--no-fund"]);
-    const installed = JSON.parse(await readFile(join(consumer, "node_modules/@agenticos/gadget-sdk/package.json"), "utf8"));
+    const installed = JSON.parse(await readFile(join(consumer, "node_modules/@agenticos-dev/gadget-sdk/package.json"), "utf8"));
     assert.equal(Object.keys(installed.dependencies ?? {}).length, 0);
     const lock = JSON.parse(await readFile(join(consumer, "package-lock.json"), "utf8"));
-    assert.deepEqual(Object.keys(lock.packages).sort(), ["", "node_modules/@agenticos/gadget-sdk"]);
+    assert.deepEqual(Object.keys(lock.packages).sort(), ["", "node_modules/@agenticos-dev/gadget-sdk"]);
     const output = execFileSync(process.execPath, ["--input-type=module", "-e", `
       import assert from 'node:assert/strict';
-      import {createFixtureTransport, createFixtureChatAdapter, GADGET_TRANSPORT_PROTOCOL} from '@agenticos/gadget-sdk';
+      import {createFixtureTransport, createFixtureChatAdapter, GADGET_TRANSPORT_PROTOCOL} from '@agenticos-dev/gadget-sdk';
       const transport = createFixtureTransport({handlers:{read:()=>({ok:true,value:'fixture'})}});
       assert.equal(transport.mode, 'fixture');
       const call = method => transport.call({protocolVersion:GADGET_TRANSPORT_PROTOCOL,method});

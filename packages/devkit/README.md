@@ -44,7 +44,7 @@ overwrite or publish command in this batch.
 scripts call these helpers after any necessary compile/bundle work:
 
 ```js
-import { buildPackage, validatePackage } from '@agenticos/gadget-devkit';
+import { buildPackage, validatePackage } from '@agenticos-dev/gadget-devkit';
 await buildPackage(process.cwd()); // build script
 // In the separate validation script:
 await validatePackage(process.cwd());

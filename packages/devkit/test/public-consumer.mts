@@ -1,7 +1,7 @@
 import {
   readBlueprintArchive, writeBlueprintArchive, type BlueprintArchive,
   type BlueprintArchiveMetadata
-} from '@agenticos/gadget-archive-tools';
+} from '@agenticos-dev/gadget-archive-tools';
 import {
   GADGET_COMMAND_KINDS, GADGET_DEFINITION_SCHEMA, GADGET_ENVELOPE_SCHEMA,
   GADGET_ERROR_CODES, GADGET_FIELD_KINDS, GADGET_LIMITS, GADGET_RUNTIME_TIERS,
@@ -11,13 +11,13 @@ import {
   type GadgetDefinitionV1, type GadgetErrorCode, type GadgetFieldV1,
   type GadgetFieldKind, type GadgetRuntimeTier, type GadgetStatus,
   type GadgetSupportedRuntimeTier, type GadgetValidationIssue, type GadgetViewLayout
-} from '@agenticos/gadget-contract';
+} from '@agenticos-dev/gadget-contract';
 import {
   PACKAGE_CHECK_STEPS, buildPackage, checkGadgetPackage, initGadgetPackage,
   packGadgetPackage, validatePackage, type PackageScriptRunner,
   type PackageReleaseEvidence, type PackageCheckStep
-} from '@agenticos/gadget-devkit';
-import SplitView, { type GadgetSplitViewProps } from '@agenticos/gadget-shell/GadgetSplitView.svelte';
+} from '@agenticos-dev/gadget-devkit';
+import SplitView, { type GadgetSplitViewProps } from '@agenticos-dev/gadget-shell/GadgetSplitView.svelte';
 import type { ComponentProps, Snippet } from 'svelte';
 
 const definition: GadgetDefinitionV1 = {
@@ -92,7 +92,7 @@ readBlueprintArchive(bytes);
 // @ts-expect-error runner must be synchronous
 checkGadgetPackage('./notes', { trustSource: true, run: async () => ({ status: 0 }) });
 // @ts-expect-error internal implementation subpaths are not public exports
-await import('@agenticos/gadget-devkit/src/index.js');
+await import('@agenticos-dev/gadget-devkit/src/index.js');
 void [issue, vocabulary, schema, stateLimit, checkScope, release, integrity, packScope,
   copyScope, declaredProps, missingCanvas, invalidScroll, unsupported, privileged,
   assignment, unknownField, assumedName];

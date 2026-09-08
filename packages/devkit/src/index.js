@@ -4,8 +4,8 @@ import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { isDeepStrictEqual } from 'node:util';
-import { readBlueprintArchive, writeBlueprintArchive } from '@agenticos/gadget-archive-tools';
-import { validateGadgetDefinition } from '@agenticos/gadget-contract';
+import { readBlueprintArchive, writeBlueprintArchive } from '@agenticos-dev/gadget-archive-tools';
+import { validateGadgetDefinition } from '@agenticos-dev/gadget-contract';
 
 export const PACKAGE_CHECK_STEPS = Object.freeze(['test', 'build', 'validate']);
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');

@@ -45,7 +45,7 @@ not permission to publish or redistribute platform source.
       source-export package is private TypeScript and uses Yjs plus standard
       compression streams; document supported Node/browser/runtime versions and
       retain its archive compatibility tests.
-- [ ] Do not depend on the full `@agenticos/api-contract` root export. It
+- [ ] Do not depend on the full `@agenticos-dev/api-contract` root export. It
       exposes internal contracts and declares unrelated `org-locale` and
       `drizzle-orm` dependencies.
 - [ ] Publish or vendor a deliberately slim gadget-contract surface containing

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { validatePackedRelease } from "../scripts/packed-release-validation.mjs";
 
-const manifest = { name: "@agenticos/example", version: "0.1.0",
+const manifest = { name: "@agenticos-dev/example", version: "0.1.0",
   exports: { ".": { types: "./src/index.d.ts", import: "./src/index.js" } },
   bin: { example: "./src/cli.mjs" } };
 const packed = { name: manifest.name, version: manifest.version,

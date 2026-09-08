@@ -5,11 +5,11 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 // Explicit release order. Actual apps and the experimental testkit are not
 // implicitly published just because another directory appears under packages/.
 export const RELEASE_PACKAGES = Object.freeze([
-  { directory: "gadget-contract", name: "@agenticos/gadget-contract" },
-  { directory: "archive-tools", name: "@agenticos/gadget-archive-tools" },
-  { directory: "sdk", name: "@agenticos/gadget-sdk" },
-  { directory: "shell", name: "@agenticos/gadget-shell" },
-  { directory: "devkit", name: "@agenticos/gadget-devkit" }
+  { directory: "gadget-contract", name: "@agenticos-dev/gadget-contract" },
+  { directory: "archive-tools", name: "@agenticos-dev/gadget-archive-tools" },
+  { directory: "sdk", name: "@agenticos-dev/gadget-sdk" },
+  { directory: "shell", name: "@agenticos-dev/gadget-shell" },
+  { directory: "devkit", name: "@agenticos-dev/gadget-devkit" }
 ]);
 const repository = "agenticos-stack/agenticos-gadget-sdk";
 const load = async path => JSON.parse(await readFile(path, "utf8"));
@@ -62,7 +62,7 @@ export async function inspectRelease(root) {
       for (const [name, version] of Object.entries(manifest[section] ?? {})) {
         if (typeof version !== "string" || !version.trim() || /^(workspace:|file:|link:|https?:|git\+|\.\.?\/)/.test(version)) block("dependency_portability", `${section} entry ${name} is not registry-portable.`, entry.name);
         const internal = RELEASE_PACKAGES.find(item => item.name === name);
-        if (name.startsWith("@agenticos/") && !internal) block("dependency_unknown_internal", `${section} entry ${name} is outside the explicit public release set.`, entry.name);
+        if (name.startsWith("@agenticos-dev/") && !internal) block("dependency_unknown_internal", `${section} entry ${name} is outside the explicit public release set.`, entry.name);
         if (internal) {
           const dependency = await load(resolve(root, "packages", internal.directory, "package.json"));
           if (version !== dependency.version) block("dependency_version", `${section} entry ${name} must match the exact release version.`, entry.name);

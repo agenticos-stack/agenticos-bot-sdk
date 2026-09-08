@@ -35,7 +35,7 @@ has not been tested because the new SDK repository is still local-only.
 2. Create the intended **public** `agenticos-stack/agenticos-gadget-sdk`
    repository from the clean SDK history, not platform history. Its visibility
    is already decided; app repository visibility is a separate choice.
-3. Confirm control of the `@agenticos` npm scope and each package name. Name
+3. Confirm control of the `@agenticos-dev` npm scope and each package name. Name
    availability and an authenticated CLI are not proof of organization authority.
 4. Choose real initial versions, include package licenses/notices and exact
    `repository.url`, enable `publishConfig.access: public`, and deliberately
@@ -88,6 +88,19 @@ an explicit reviewed template; do not advertise a complete generated starter.
 
 ## Current release status
 
-Blocked intentionally: owner license/source audit, public repository setup,
-scope ownership, first package bootstrap, trusted publisher configuration and
-explicit publication approval. No registry write has been attempted.
+Owner publication authorization received on 2026-09-08. Read-only npm checks
+authenticated `favcrm-dev` and confirmed the `owner` role in `agenticos-dev`.
+The SDK packages, internal imports, consumers and release list now target
+`@agenticos-dev`. This is npm scope ownership evidence, not a source-license
+approval or proof that a token can publish every new package.
+
+Remaining gates: selected SDK license/source audit, public repository setup,
+release versions and package metadata, first package bootstrap and trusted
+publisher configuration. The temporary authentication file was removed after
+verification; initial publication will require a fresh private credential
+handoff. No registry write has been attempted.
+
+Scope-migration verification: 28 focused tests passed on 2026-09-08, including
+offline packed SDK installation, tooling/shell declaration consumers, devkit
+build/validation and release checks. Package manifests remain private until
+the outstanding license/source and release-configuration gates are resolved.
