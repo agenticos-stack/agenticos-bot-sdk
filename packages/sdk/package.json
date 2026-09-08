@@ -19,7 +19,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/agenticos-stack/agenticos-gadget-sdk.git",
+    "url": "git+https://github.com/agenticos-stack/agenticos-bot-sdk.git",
     "directory": "packages/sdk"
   },
   "publishConfig": {

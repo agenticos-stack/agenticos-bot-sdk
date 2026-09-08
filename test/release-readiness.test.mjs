@@ -11,14 +11,14 @@ async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), "sdk-release-policy-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   const save = (path, value) => writeFile(join(root, path), JSON.stringify(value));
-  await save("release-policy.json", { schemaVersion: 1, repository: "agenticos-stack/agenticos-gadget-sdk",
+  await save("release-policy.json", { schemaVersion: 1, repository: "agenticos-stack/agenticos-bot-sdk",
     ownerApproval: "approved", license: "MIT", sourceAudit: "approved", npmScopeOwnership: "verified", trustedPublisher: "configured" });
   await writeFile(join(root, "LICENSE"), "Synthetic license marker for policy tests; not an actual license grant.");
   const manifests = new Map();
   for (const entry of RELEASE_PACKAGES) {
     await mkdir(join(root, "packages", entry.directory), { recursive: true });
     const manifest = { name: entry.name, version: "0.1.0", private: false, license: "MIT",
-      repository: { type: "git", url: "git+https://github.com/agenticos-stack/agenticos-gadget-sdk.git" },
+      repository: { type: "git", url: "git+https://github.com/agenticos-stack/agenticos-bot-sdk.git" },
       files: ["index.js", "index.d.ts"], exports: { ".": { types: "./index.d.ts", import: "./index.js" } }, publishConfig: { access: "public" } };
     manifests.set(entry.directory, manifest);
     await save(`packages/${entry.directory}/package.json`, manifest);
@@ -38,7 +38,7 @@ test("declared prerequisites can pass without claiming registry authorization", 
 
 test("pending approvals/private packages fail closed", async t => {
   const { root, manifests, save } = await fixture(t);
-  await save("release-policy.json", { schemaVersion: 1, repository: "agenticos-stack/agenticos-gadget-sdk", ownerApproval: "pending", license: null });
+  await save("release-policy.json", { schemaVersion: 1, repository: "agenticos-stack/agenticos-bot-sdk", ownerApproval: "pending", license: null });
   await save("packages/sdk/package.json", { ...manifests.get("sdk"), private: true });
   const result = await inspectRelease(root);
   assert.equal(result.ready, false);
