@@ -6,7 +6,7 @@ import {
   type GadgetTransport,
   type GadgetCallRefusal,
   type GadgetHostContext
-} from "@agenticos-dev/gadget-sdk";
+} from "@agenticos-dev/bot-sdk";
 
 const context: GadgetHostContext = {
   protocolVersion: GADGET_TRANSPORT_PROTOCOL,

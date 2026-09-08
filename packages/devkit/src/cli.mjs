@@ -3,7 +3,7 @@ import { checkGadgetPackage, initGadgetPackage, packGadgetPackage } from './inde
 
 try {
   const [command, directory, ...args] = process.argv.slice(2);
-  if (!directory || !['init', 'check', 'pack'].includes(command)) throw new Error('Usage: gadget-dev init <new-directory> --template <reviewed-directory> --name <name> | check <directory> --trust-source | pack <directory> --trust-source --output <new.gadget>');
+  if (!directory || !['init', 'check', 'pack'].includes(command)) throw new Error('Usage: bot-dev init <new-directory> --template <reviewed-directory> --name <name> | check <directory> --trust-source | pack <directory> --trust-source --output <new.gadget>');
   const options = {};
   const allowed = command === 'init' ? ['template', 'name'] : command === 'pack' ? ['trust-source', 'output'] : ['trust-source'];
   for (let i = 0; i < args.length; i++) {

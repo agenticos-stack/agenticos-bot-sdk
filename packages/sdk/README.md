@@ -1,4 +1,4 @@
-# `@agenticos-dev/gadget-sdk`
+# `@agenticos-dev/bot-sdk`
 
 Dependency-free transport contract and explicit fixture transport foundation.
 This package does not connect to a live API, handle credentials, or grant

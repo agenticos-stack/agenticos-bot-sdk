@@ -1,5 +1,11 @@
 # npm release preparation
 
+Current naming: the owner requested `@agenticos-dev/bot-*` on 2026-09-08.
+The original `gadget-*` 0.1.0 release evidence below is historical and retained.
+The rename publishes new package names; it does not overwrite or unpublish old
+versions. Old versions receive replacement notices only after new installs pass.
+The archive format and platform identities still use `.gadget`/blueprint names.
+
 ## SDK packages and gadget apps are different deliverables
 
 The public SDK repository owns npm packages: transport contracts, shell,
@@ -26,8 +32,8 @@ candidates are retained on failure for inspection, never overwritten.
 
 The manual `npm-release-readiness.yml` workflow runs focused checks and retains
 candidate tarballs. It has read-only repository permission, no OIDC minting
-permission, no npm token and no publish/stage command. Hosted execution itself
-has not been tested because the new SDK repository is still local-only.
+permission, no npm token and no publish/stage command. This diagnostic workflow
+has not yet been dispatched; the separate SDK checks workflow passed on PR and staging.
 
 ## Owner setup before first publication
 
@@ -99,10 +105,10 @@ SDK package directories now contain LICENSE/NOTICE, exact public repository
 metadata and initial version 0.1.0. The five initial npm candidates exclude the
 experimental testkit. See [source review](source-release-review-2026-09-08.md).
 
-Remaining gates: public repository setup, deliberate publication enablement,
-first package bootstrap and trusted publisher configuration. The temporary authentication file was removed after
-verification; initial publication will require a fresh private credential
-handoff. No registry write has been attempted.
+Initial publication is complete. All five packages are public on npm at 0.1.0,
+with latest pointing to that version. The first bootstrap used a privately
+supplied temporary credential, not OIDC. Remaining setup: the separately
+reviewed stage-publishing workflow and owner-verified trusted publisher settings.
 
 Scope-migration verification: 28 focused tests passed on 2026-09-08, including
 offline packed SDK installation, tooling/shell declaration consumers, devkit

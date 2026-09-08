@@ -54,7 +54,7 @@ try {
   for (const [name, entry] of Object.entries(lock.packages)) {
     if (entry.link || name.includes("api-contract") || name.includes("social-content")) throw new Error(`Unexpected dependency closure: ${name}`);
   }
-  const cli = join(consumer, "node_modules/@agenticos-dev/gadget-devkit/src/cli.mjs");
+  const cli = join(consumer, "node_modules/@agenticos-dev/bot-devkit/src/cli.mjs");
   const run = (args) => execFileSync(process.execPath, [cli, ...args], { cwd: consumer, env, encoding: "utf8", timeout: 120000 });
   const checks = run(["check", consumer, "--trust-source"]);
   const manifest = JSON.parse(await readFile(join(consumer, "manifest.json"), "utf8"));
