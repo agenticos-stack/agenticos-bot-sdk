@@ -1,0 +1,14 @@
+# Local implementation provenance
+
+New local unpublished implementation, authored for the SDK developer-kit plan.
+No application or repository history is copied. The trusted test/build/validate
+orchestration follows API `scripts/check-gadget-package.mjs` at commit
+`e800c449ef1635776ec2b5b4fab36ec353870809`; this does not move or remove that
+compatibility command. The generic manifest and release evidence use the
+existing Social Content standalone build shape, not a new archive format.
+
+Canonical runtime dependencies are `@agenticos/gadget-archive-tools` 0.1.0 and
+`@agenticos/gadget-contract` 0.1.0; their own provenance files identify exact
+source snapshots and unresolved publication licenses. All other runtime imports
+are Node builtins. Package manifests use exact versions, not workspace links.
+Public publication and registry installability are not claimed.

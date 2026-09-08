@@ -1,0 +1,13 @@
+{
+  "name": "@agenticos/gadget-sdk",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "files": ["index.js", "index.d.ts", "README.md"],
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js"
+    }
+  }
+}

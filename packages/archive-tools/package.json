@@ -1,0 +1,10 @@
+{
+  "name": "@agenticos/gadget-archive-tools",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.js",
+  "files": ["src", "PROVENANCE.md"],
+  "dependencies": { "yjs": "13.6.32" },
+  "engines": { "node": ">=22.17" }
+}

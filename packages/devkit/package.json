@@ -1,0 +1,14 @@
+{
+  "name": "@agenticos/gadget-devkit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.js",
+  "bin": { "gadget-dev": "./src/cli.mjs" },
+  "files": ["src", "README.md", "PROVENANCE.md"],
+  "dependencies": {
+    "@agenticos/gadget-archive-tools": "0.1.0",
+    "@agenticos/gadget-contract": "0.1.0"
+  },
+  "engines": { "node": ">=22.17" }
+}

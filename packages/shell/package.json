@@ -1,0 +1,9 @@
+{
+  "name": "@agenticos/gadget-shell",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "files": ["GadgetSplitView.svelte", "README.md"],
+  "exports": { "./GadgetSplitView.svelte": "./GadgetSplitView.svelte" },
+  "peerDependencies": { "svelte": "^5.56.3" }
+}
