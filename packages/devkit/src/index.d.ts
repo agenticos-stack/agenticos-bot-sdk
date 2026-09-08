@@ -1,4 +1,4 @@
-import type { GadgetDefinitionV1 } from "@agenticos-dev/gadget-contract";
+import type { GadgetDefinitionV1 } from "@agenticos-dev/bot-contract";
 
 export const PACKAGE_CHECK_STEPS: readonly ["test", "build", "validate"];
 export type PackageCheckStep = (typeof PACKAGE_CHECK_STEPS)[number];

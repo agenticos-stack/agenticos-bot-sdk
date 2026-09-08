@@ -5,11 +5,11 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 // Explicit release order. Actual apps and the experimental testkit are not
 // implicitly published just because another directory appears under packages/.
 export const RELEASE_PACKAGES = Object.freeze([
-  { directory: "gadget-contract", name: "@agenticos-dev/gadget-contract" },
-  { directory: "archive-tools", name: "@agenticos-dev/gadget-archive-tools" },
-  { directory: "sdk", name: "@agenticos-dev/gadget-sdk" },
-  { directory: "shell", name: "@agenticos-dev/gadget-shell" },
-  { directory: "devkit", name: "@agenticos-dev/gadget-devkit" }
+  { directory: "gadget-contract", name: "@agenticos-dev/bot-contract" },
+  { directory: "archive-tools", name: "@agenticos-dev/bot-archive-tools" },
+  { directory: "sdk", name: "@agenticos-dev/bot-sdk" },
+  { directory: "shell", name: "@agenticos-dev/bot-shell" },
+  { directory: "devkit", name: "@agenticos-dev/bot-devkit" }
 ]);
 const repository = "agenticos-stack/agenticos-gadget-sdk";
 const load = async path => JSON.parse(await readFile(path, "utf8"));

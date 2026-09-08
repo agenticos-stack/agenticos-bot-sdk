@@ -7,7 +7,7 @@ agent, persisted app or platform authorization decision.
 import {
   createFixtureTransport,
   GADGET_TRANSPORT_PROTOCOL
-} from '@agenticos-dev/gadget-sdk';
+} from '@agenticos-dev/bot-sdk';
 
 const transport = createFixtureTransport({
   handlers: {

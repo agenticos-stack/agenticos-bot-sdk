@@ -1,5 +1,5 @@
 {
-  "name": "@agenticos-dev/gadget-sdk",
+  "name": "@agenticos-dev/bot-sdk",
   "version": "0.1.0",
   "private": false,
   "type": "module",

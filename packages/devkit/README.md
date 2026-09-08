@@ -11,9 +11,9 @@ graph contains no `workspace:*` links or private API imports. Archive-tools uses
 pinned Yjs 13.6.32. Node 22.17+ and npm are required.
 
 ```sh
-gadget-dev init ./my-agent --template ./reviewed-template-export --name my-agent
-gadget-dev check ./my-agent --trust-source
-gadget-dev pack ./my-agent --trust-source --output ./my-agent-release.gadget
+bot-dev init ./my-agent --template ./reviewed-template-export --name my-agent
+bot-dev check ./my-agent --trust-source
+bot-dev pack ./my-agent --trust-source --output ./my-agent-release.gadget
 ```
 
 `init` currently copies a reviewed **export directory**, not an arbitrary git
@@ -21,6 +21,7 @@ checkout. It requires package scripts `test`, `build`, `validate`. It refuses
 existing destinations, symlinks, hidden files (except `.gitignore`), `dist`, and
 `node_modules`. It changes only package name and `private: true`; definition and
 blueprint identity are retained deliberately and must be reviewed by the author.
+The previous `gadget-dev` command remains a compatibility alias for `bot-dev`.
 It runs no scripts and does not install dependencies. There is no bundled Notes
 app: the real app belongs in its own repository. A generic generated template,
 identity-selection UX and TASK-008 acceptance are still pending.
@@ -44,7 +45,7 @@ overwrite or publish command in this batch.
 scripts call these helpers after any necessary compile/bundle work:
 
 ```js
-import { buildPackage, validatePackage } from '@agenticos-dev/gadget-devkit';
+import { buildPackage, validatePackage } from '@agenticos-dev/bot-devkit';
 await buildPackage(process.cwd()); // build script
 // In the separate validation script:
 await validatePackage(process.cwd());

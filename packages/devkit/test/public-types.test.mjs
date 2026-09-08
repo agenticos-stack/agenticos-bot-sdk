@@ -54,12 +54,14 @@ test('packed public declarations work without private repos in NodeNext and Bund
     const svelte = JSON.parse(await readFile(join(root, 'node_modules/svelte/package.json'), 'utf8'));
     await writeFile(join(consumer, 'package.json'), JSON.stringify({ name: 'isolated-public-types', private: true, type: 'module' }));
     npm(['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', ...tarballs, `svelte@${svelte.version}`]);
-    const cli = spawnSync(join(consumer, 'node_modules/.bin/gadget-dev'), ['check', consumer], {
-      cwd: consumer, env, encoding: 'utf8', timeout: 10000
-    });
-    assert.equal(cli.error, undefined, 'npm installs an executable gadget-dev bin');
-    assert.equal(cli.status, 1);
-    assert.match(cli.stderr, /trust-source/, 'Installed bin retains the explicit-trust refusal');
+    for (const name of ['bot-dev', 'gadget-dev']) {
+      const cli = spawnSync(join(consumer, `node_modules/.bin/${name}`), ['check', consumer], {
+        cwd: consumer, env, encoding: 'utf8', timeout: 10000
+      });
+      assert.equal(cli.error, undefined, `npm installs an executable ${name} bin`);
+      assert.equal(cli.status, 1);
+      assert.match(cli.stderr, /trust-source/, 'Installed bin retains the explicit-trust refusal');
+    }
     const lock = JSON.parse(await readFile(join(consumer, 'package-lock.json'), 'utf8'));
     for (const path of Object.keys(lock.packages)) {
       if (path.startsWith('node_modules/@agenticos-dev/')) {
@@ -81,13 +83,13 @@ test('packed public declarations work without private repos in NodeNext and Bund
     }
     const result = execFileSync(process.execPath, ['--input-type=module', '-e', `
       import assert from 'node:assert/strict';
-      import * as codec from '@agenticos-dev/gadget-archive-tools';
-      import * as contract from '@agenticos-dev/gadget-contract';
-      import * as devkit from '@agenticos-dev/gadget-devkit';
+      import * as codec from '@agenticos-dev/bot-archive-tools';
+      import * as contract from '@agenticos-dev/bot-contract';
+      import * as devkit from '@agenticos-dev/bot-devkit';
       assert.equal(typeof codec.readBlueprintArchive, 'function');
       assert.equal(contract.validateGadgetDefinition({}).ok, false);
       assert.deepEqual(devkit.PACKAGE_CHECK_STEPS, ['test', 'build', 'validate']);
-      assert.ok(import.meta.resolve('@agenticos-dev/gadget-shell/GadgetSplitView.svelte').endsWith('/GadgetSplitView.svelte'));
+      assert.ok(import.meta.resolve('@agenticos-dev/bot-shell/GadgetSplitView.svelte').endsWith('/GadgetSplitView.svelte'));
       console.log('Public package entries resolve');
     `], { cwd: consumer, env, encoding: 'utf8', timeout: 10000 });
     assert.match(result, /Public package entries resolve/);
