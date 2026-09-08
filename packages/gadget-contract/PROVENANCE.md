@@ -17,3 +17,10 @@ permitted only for local unpublished development pending source audit and owner
 license selection. Validation is compatibility checking, not authorization or
 proof of runtime isolation. API remains the canonical source until the separate
 versioned-consumer migration; compare this hash before refreshing the snapshot.
+
+`src/index.d.ts` is a bounded declaration selection from that same revision:
+the exported validator/constants, their definition/field/action/view/requirement
+types, and validation result/issue types only. It omits instance envelopes,
+bindings assignments, command governance and all private contract imports.
+Comments are condensed. This selection does not alter runtime validation or
+resolve source redistribution approval.

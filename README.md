@@ -11,8 +11,9 @@ privileged host adapters, authentication, agent execution and capability policy.
 
 The local foundation includes dependency-free transport/chat fixtures, an
 extracted presentation shell, canonical archive/definition tooling and trusted
-local init/check/pack commands. It does not connect to a live API, provide a DO
-testkit, run a model, authorize an action or publish a gadget.
+local init/check/pack commands, and an experimental real-workerd DO facet
+testkit. It does not connect to a live API, run a model, authorize an action or
+publish a gadget.
 
 Run the foundation tests with `npm test` on Node 22 or later. No dependency
 installation or Cloudflare account is needed for this initial batch.
@@ -47,3 +48,13 @@ closure and artifact behavior, not host authorization or DO persistence.
 See [the developer CLI](packages/devkit/README.md) for the reviewed-template
 `init` limitation and [batch evidence](docs/developer-batch-2026-09-08.md) for
 completed checks versus outstanding release gates.
+
+Run `npm run test:testkit` for real local DO facet storage/restart/isolation
+checks after dependency installation. The optional packed Notes acceptance
+requires an explicit archive path; see [the testkit](packages/testkit/README.md).
+These tests do not prove production tenant admission or schema upgrades.
+
+See [npm release preparation](docs/npm-release.md) for candidate packaging,
+owner setup and the non-publishing readiness workflow. No npm login or
+Cloudflare credentials are needed for these local checks. Publication remains
+blocked pending owner approval and registry setup.

@@ -1,0 +1,49 @@
+name: SDK release readiness (no publication)
+
+on:
+  workflow_dispatch:
+    inputs:
+      require_ready:
+        description: Fail unless declared public-release prerequisites are satisfied
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.20.0'
+          package-manager-cache: false
+      - run: npm install --global npm@12.0.2 --ignore-scripts --no-audit --no-fund
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm test
+      - run: npm run test:package
+      - run: npm run test:shell
+      - run: npm run test:devkit
+      - run: npm run test:release
+      - name: Prepare exact local package candidates
+        run: node scripts/prepare-release.mjs --output .release-candidate
+      - name: Enforce declared readiness when requested
+        if: inputs.require_ready
+        run: node scripts/release-readiness.mjs --strict
+      - name: Retain candidate bytes and explicit blockers
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: sdk-candidate-${{ github.sha }}
+          path: .release-candidate/
+          retention-days: 7
+          if-no-files-found: error
+
+# Deliberately no publish, npm stage, token secret or id-token permission.
+# Owner approval and registry/bootstrap configuration precede a separate,
+# reviewed trusted-publisher workflow. A green diagnostic run is not a release.

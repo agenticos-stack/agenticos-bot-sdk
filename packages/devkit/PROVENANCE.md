@@ -12,3 +12,9 @@ Canonical runtime dependencies are `@agenticos/gadget-archive-tools` 0.1.0 and
 source snapshots and unresolved publication licenses. All other runtime imports
 are Node builtins. Package manifests use exact versions, not workspace links.
 Public publication and registry installability are not claimed.
+
+`src/index.d.ts` describes only this package's existing local JS API and imports
+the bounded public `GadgetDefinitionV1` declaration. It does not import Node or
+private platform declarations. Public packed-consumer checks cover both NodeNext
+and Bundler TypeScript resolution; they do not resolve the licensing gate or
+certify a package's declared runtime compatibility.

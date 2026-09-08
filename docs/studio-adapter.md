@@ -1,9 +1,9 @@
 # Studio shell and chat adapter handoff
 
-Status: live integration design handoff only. A local SDK chat fixture now exists;
-see [its contract and verified host gaps](chat-fixture.md). This document records the extraction boundary
-from the existing Studio implementation; it does not copy Studio/API source
-and does not claim that an adapter has been implemented.
+Status: private adapter implemented in draft Studio PR #841; route integration
+remains outstanding. A local SDK chat fixture also exists; see
+[its contract and verified host gaps](chat-fixture.md). This document records
+the extraction boundary without copying Studio/API source.
 
 ## Scope and ownership
 
@@ -183,13 +183,22 @@ must reject unsupported pagination rather than silently ignore it. Retired
 `chat-page-conversation-data.ts` and `chat-stream-client.ts` are not current
 integration owners (some historical test names below remain audit references).
 
-Next extraction must adopt a single private history reader in the route before
-SDK delegation. Capture conversation identity and read generation; check both
-after async reads and before opening a session. Current inline `refreshHistory`
-and `switchConversationSession` lack those guards. Reuse canonical
-`projectHistory`/`projectConversation`, preserve aligned payload arrays and
-advance the live-event boundary only after successful current reads. No second
-transcript store should be introduced.
+History correction (2026-09-08): Studio PR #838 already introduced the guarded
+private history reader and was verified on staging at
+`70046ef6d398d731502d9db8c8761ced8ee80e98`. The earlier claim that inline history
+reads lacked these guards is superseded; do not implement a duplicate reader.
+Preserve canonical projection, aligned payload arrays and the successful-current
+read boundary when integrating the SDK.
+
+[Draft Studio PR #841](https://github.com/agenticos-stack/agenticos-studio/pull/841)
+adds a private bridge over existing console receipts and history, checked
+against the locally packed SDK. It separates workspace/conversation identity,
+guards immutable session tokens (including A→B→A), preserves denial receipts,
+abandons waiting on close/abort and refuses unsupported pagination/selection.
+It does not yet wire a route, adopt the shell or consume a published SDK.
+The next integration must fan out the existing guarded session events and
+replace/close the bridge on every session change, without a second connection
+or transcript store.
 
 The playground can implement this contract with a fixture adapter and a local
 runtime adapter, each with a persistent visible mode label. Fixture mode must

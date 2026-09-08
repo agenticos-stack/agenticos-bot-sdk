@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": { ".": { "types": "./src/index.d.ts", "import": "./src/index.js", "default": "./src/index.js" } },
   "bin": { "gadget-dev": "./src/cli.mjs" },
   "files": ["src", "README.md", "PROVENANCE.md"],
   "dependencies": {

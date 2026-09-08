@@ -8,6 +8,9 @@
     "test:package": "node --test test/package-install.test.mjs",
     "test:shell": "node --test test/shell.test.mjs",
     "test:devkit": "node --test packages/devkit/test/*.test.mjs",
+    "test:testkit": "node --test --test-concurrency=1 packages/testkit/test/*.test.mjs",
+    "test:release": "node --test test/release-readiness.test.mjs test/packed-release-validation.test.mjs",
+    "release:check": "node scripts/release-readiness.mjs",
     "preview:shell": "node scripts/preview-shell.mjs"
   },
   "engines": {
@@ -15,6 +18,7 @@
   },
   "devDependencies": {
     "esbuild": "0.28.1",
+    "miniflare": "4.20260702.0",
     "svelte": "5.56.3",
     "typescript": "7.0.2",
     "yjs": "13.6.32"

@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "files": ["GadgetSplitView.svelte", "README.md"],
-  "exports": { "./GadgetSplitView.svelte": "./GadgetSplitView.svelte" },
+  "files": ["GadgetSplitView.svelte", "GadgetSplitView.svelte.d.ts", "README.md"],
+  "exports": { "./GadgetSplitView.svelte": { "types": "./GadgetSplitView.svelte.d.ts", "svelte": "./GadgetSplitView.svelte", "default": "./GadgetSplitView.svelte" } },
   "peerDependencies": { "svelte": "^5.56.3" }
 }

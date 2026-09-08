@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": { ".": { "types": "./src/index.d.ts", "import": "./src/index.js", "default": "./src/index.js" } },
   "files": ["src", "PROVENANCE.md"],
   "dependencies": { "yjs": "13.6.32" },
   "engines": { "node": ">=22.17" }

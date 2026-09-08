@@ -23,6 +23,12 @@ raw upload limits, permission checks, identity selection, and publication remain
 host-owned. API still owns the canonical source until a versioned-consumer
 migration is reviewed; compare this hash before refreshing the snapshot.
 
+`src/index.d.ts` retains only the archive metadata/archive interfaces and two
+exported codec signatures from that same canonical revision. Comments are
+condensed; metadata remains explicitly untrusted. No additional source or
+private dependency is introduced, and the pending redistribution gate applies
+to these declarations too.
+
 Local 2026-09-08 compatibility check decoded the API's existing upstream
 `workspace-docs.gadget` (25,000 bytes), `workspace-slides.gadget` (49,977 bytes)
 and `workspace-sheets.gadget` (39,404 bytes), re-encoded each with this extracted

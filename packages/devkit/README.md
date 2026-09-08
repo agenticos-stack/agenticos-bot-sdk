@@ -87,6 +87,7 @@ From the SDK root:
 
 ```sh
 node --test packages/devkit/test/devkit.test.mjs
+node --test packages/devkit/test/public-types.test.mjs
 ```
 
 The suite packs all three local packages and installs them into a temporary
@@ -94,3 +95,18 @@ consumer with `npm install --offline --ignore-scripts`. Its npm cache therefore
 needs the pinned dependency closure populated once. No monorepo imports or
 workspace links are available to that consumer. Temporary consumer files are
 removed at completion.
+
+The second suite additionally packs the shell and installs its pinned Svelte
+peer from the local npm cache. It compiles an independent TypeScript consumer
+under strict NodeNext and Bundler resolution (`skipLibCheck: false`, no ambient
+Node types). Positive and negative assertions cover every exported codec,
+validator and devkit API plus required shell snippets and unsupported authority
+fields. Export targets must exist in each tarball, internal package versions
+must match the public closure, and private API packages must not be installed.
+The shell's `.svelte` entry still requires a Svelte-capable application bundler;
+type availability does not make the component directly executable by Node.
+
+Declarations preserve `unknown` for unchecked package names, compatibility
+metadata and embedded definitions. Build bytes are exposed as `Uint8Array` (the
+implementation returns its Node Buffer subtype), avoiding an ambient Node-types
+dependency for consumers that only inspect package evidence.
