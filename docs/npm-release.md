@@ -1,5 +1,11 @@
 # npm release preparation
 
+Current naming: the owner requested `@agenticos-dev/bot-*` on 2026-09-08.
+The original `gadget-*` 0.1.0 release evidence below is historical and retained.
+The rename publishes new package names; it does not overwrite or unpublish old
+versions. Old versions receive replacement notices only after new installs pass.
+The archive format and platform identities still use `.gadget`/blueprint names.
+
 ## SDK packages and gadget apps are different deliverables
 
 The public SDK repository owns npm packages: transport contracts, shell,

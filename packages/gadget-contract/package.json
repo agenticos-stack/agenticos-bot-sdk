@@ -1,5 +1,5 @@
 {
-  "name": "@agenticos-dev/gadget-contract",
+  "name": "@agenticos-dev/bot-contract",
   "version": "0.1.0",
   "private": false,
   "type": "module",

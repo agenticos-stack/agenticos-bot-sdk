@@ -5,7 +5,7 @@ Worker Loader and `ctx.facets.get`, with each facet using Cloudflare's SQLite
 storage API. It is not a Node SQLite substitution or an emulated gadget class.
 
 ```js
-import { createFacetTestkit } from "@agenticos-dev/gadget-testkit";
+import { createFacetTestkit } from "@agenticos-dev/bot-testkit";
 
 const rig = await createFacetTestkit({
   modules: { "server.js": serverSource, "storage.js": storageSource },

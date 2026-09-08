@@ -1,9 +1,14 @@
-# AgenticOS Gadget SDK
+# AgenticOS Bot SDK
 
 Public SDK source foundation, published on npm as version 0.1.0. Not yet
 integrated with Studio, and not a production SDK release. The owner selected
 Apache-2.0 for this SDK and its reviewed extracts. This does not relicense the
 private platform repositories or separately installed third-party dependencies.
+
+The public npm family is now `@agenticos-dev/bot-*`, replacing the initially
+published `@agenticos-dev/gadget-*` names. The GitHub repository name, `.gadget`
+archive format, existing blueprint identities and exported API names remain
+unchanged. The devkit provides `bot-dev` plus the compatible `gadget-dev` alias.
 
 This repository will own SDK transport contracts, development CLI, reusable
 shell, playground and testkit. Each actual gadget belongs to a separate
@@ -69,6 +74,6 @@ the initial 0.1.0 publication; fresh anonymous registry installs and tarball
 hashes are verified. OIDC trusted publishing remains a separate setup step.
 
 ```sh
-npm install @agenticos-dev/gadget-sdk@0.1.0
-npm install --save-dev @agenticos-dev/gadget-devkit@0.1.0
+npm install @agenticos-dev/bot-sdk@0.1.0
+npm install --save-dev @agenticos-dev/bot-devkit@0.1.0
 ```
