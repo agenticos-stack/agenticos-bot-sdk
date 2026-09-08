@@ -1,3 +1,6 @@
+This review precedes the bootstrap batch; see npm-release.md for current
+publication enablement and registry status.
+
 # SDK license and source release review — 2026-09-08
 
 Owner authorization: publish the SDK under `@agenticos-dev`, using Apache-2.0

@@ -1,8 +1,9 @@
 # Gadget SDK foundation
 
-This is a new independent repository intended for public release, currently
-local and unpublished. No upstream staging exists yet; initial work uses
-`codex/foundation`, never main/staging commits. Remote publication is gated on
+This is the independent public SDK repository. The licensed foundation was
+bootstrapped at 42deb4e on staging/main; subsequent changes use feature branches
+and PRs against staging. Never commit or push directly to main/staging.
+Package publication is gated on
 source/dependency audit and release verification. The owner approved Apache-2.0
 for the SDK and reviewed extracts on 2026-09-08. Do not import private API
 or Studio modules, copy their history, or embed credentials/customer fixtures.

@@ -1,6 +1,6 @@
 # AgenticOS Gadget SDK
 
-Local foundation for a future public SDK repository. Not published, not yet
+Public SDK source foundation. npm release setup is in progress; not yet
 integrated with Studio, and not a production SDK release. The owner selected
 Apache-2.0 for this SDK and its reviewed extracts. This does not relicense the
 private platform repositories or separately installed third-party dependencies.
@@ -57,5 +57,5 @@ These tests do not prove production tenant admission or schema upgrades.
 
 See [npm release preparation](docs/npm-release.md) for candidate packaging,
 owner setup and the non-publishing readiness workflow. No npm login or
-Cloudflare credentials are needed for these local checks. Publication remains
-blocked pending owner approval and registry setup.
+Cloudflare credentials are needed for these local checks. The owner approved
+the initial 0.1.0 publication; registry verification is a separate release step.

@@ -108,3 +108,25 @@ Scope-migration verification: 28 focused tests passed on 2026-09-08, including
 offline packed SDK installation, tooling/shell declaration consumers, devkit
 build/validation and release checks. Package manifests remain private until
 the outstanding release-configuration and authentication gates are resolved.
+
+## Initial publication batch
+
+The public repository now exists at
+https://github.com/agenticos-stack/agenticos-gadget-sdk. The licensed foundation
+initialized staging/main at `42deb4e`; further changes use PRs to staging.
+The owner approved initial publication of the five listed packages at 0.1.0.
+Their manifests are explicitly publication-enabled; testkit remains private.
+
+`--bootstrap` on the readiness and candidate commands selects an explicit
+owner-approved first-publication mode. It requires `bootstrapPublish: approved`
+and exactly version 0.1.0, while preserving all source/license/dependency gates.
+This does not claim a trusted publisher exists. Default readiness continues to
+require OIDC setup. Before the bootstrap publish, the operator must verify all
+package versions are absent from npm, publish only reviewed candidate tarballs
+from the tested staging SHA, then reconcile registry hashes and test installs.
+
+The temporary npm credential is supplied by a private userconfig file, never
+committed or printed. Its successful whoami/org checks do not prove publish
+authorization; npm may still require additional permissions or 2FA. OIDC trust
+configuration is a separate account-governance action and may require the owner
+to complete interactive verification. No login bypass is implemented.

@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "repository": "agenticos-stack/agenticos-gadget-sdk",
   "ownerApproval": "approved",
+  "bootstrapPublish": "approved",
   "license": "Apache-2.0",
   "sourceAudit": "approved",
   "npmScopeOwnership": "verified",
