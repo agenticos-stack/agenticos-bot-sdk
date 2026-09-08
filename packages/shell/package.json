@@ -4,6 +4,7 @@
   "private": false,
   "type": "module",
   "files": [
+    "tokens.css",
     "GadgetSplitView.svelte",
     "GadgetSplitView.svelte.d.ts",
     "README.md",
@@ -11,6 +12,7 @@
     "NOTICE"
   ],
   "exports": {
+    "./tokens.css": "./tokens.css",
     "./GadgetSplitView.svelte": {
       "types": "./GadgetSplitView.svelte.d.ts",
       "svelte": "./GadgetSplitView.svelte",
