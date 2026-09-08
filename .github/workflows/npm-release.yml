@@ -1,0 +1,84 @@
+name: Publish bot packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Exact tested staging SHA (40 characters); run from staging
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.repository == 'agenticos-stack/agenticos-bot-sdk' && github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Require exact dispatch SHA and green staging CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          test "$SOURCE_SHA" = "$GITHUB_SHA"
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$SOURCE_SHA&event=push&branch=staging" --jq '.workflow_runs | sort_by(.run_number) | last | .conclusion' | grep -qx success
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24.20.0'
+          package-manager-cache: false
+      - run: npm install --global npm@12.0.2 --ignore-scripts --no-audit --no-fund
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node scripts/release-readiness.mjs --strict
+      - run: node scripts/prepare-release.mjs --output .release-candidate
+      - run: node scripts/publish-release.mjs --check
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: npm-release-${{ github.sha }}
+          path: .release-candidate/
+          retention-days: 30
+          if-no-files-found: error
+  publish:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: npm-release
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24.20.0'
+          package-manager-cache: false
+          registry-url: https://registry.npmjs.org
+      - run: npm install --global npm@12.0.2 --ignore-scripts --no-audit --no-fund
+      - name: Download this run's immutable candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "npm-release-$GITHUB_SHA" --dir .release-candidate
+      - run: node scripts/publish-release.mjs --publish
+      - name: Retain publication receipt even after partial failure
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: npm-publication-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .release-candidate/publication.json
+          retention-days: 90
+          if-no-files-found: warn
