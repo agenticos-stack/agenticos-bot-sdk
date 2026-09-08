@@ -17,8 +17,10 @@
   links. Dependency closure: devkit, archive-tools, gadget-contract, Yjs, lib0,
   isomorphic.js. Repeat builds were byte-identical; existing output preserved.
 
-Notes archive: 8,151 bytes, SHA-256
-`b7d6510cb13020298c1664c3ef5e68958c2c546b866a15b3cdb3dba9873b6bc4`.
+Notes archive: 8,150 bytes, SHA-256
+`180b2dd00080fb5f1f99447673e7dac68a0936e47df7e16f7183dfd486606062`.
+This supersedes initial `b7d6510c…` after removing trailing blank lines from
+two archive members; build/validation and clean-consumer acceptance were rerun.
 Build provenance deliberately reports incomplete local evidence; sourceCommit
 is null. This is not a signed/published release.
 
