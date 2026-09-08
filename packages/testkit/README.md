@@ -1,5 +1,27 @@
 # Local DO facet testkit (unpublished)
 
+## Login-free local session (unpublished)
+
+`createLocalSession` from `@agenticos-dev/bot-testkit/local-session` wraps the
+facet runtime with a bounded JSON request interface. Supply trusted modules,
+explicit browser-callable `allowedMethods`, host-only `seed` calls, and exact
+HTTP loopback `origins`. The session chooses the synthetic workspace/facet;
+browser requests cannot select identities. The underlying runtime injects no
+credentials or outbound capabilities. Do not admit publishing methods.
+
+The local HTTP host must bind loopback, serve the session token only to its
+own preview document, limit request bodies before constructing Request objects,
+route POST requests to `session.handle`, and await `session.dispose` on shutdown.
+Requests require an exact Origin, JSON content type, and `x-bot-local-session`.
+This is a developer capability token, not platform login or tenant authorization.
+Seed methods are unavailable to browsers unless separately admitted.
+
+Storage survives browser reloads within the running session. Shutdown disposes
+the uniquely allocated temporary database; restart persistence and live agent
+execution are not provided by this wrapper. No scheduled jobs or provider calls
+are enabled. This is not yet a complete browser dev server or Social Content
+integration; those consumers must be wired separately.
+
 This executes supplied app JavaScript in a **real local workerd runtime** through
 Worker Loader and `ctx.facets.get`, with each facet using Cloudflare's SQLite
 storage API. It is not a Node SQLite substitution or an emulated gadget class.
