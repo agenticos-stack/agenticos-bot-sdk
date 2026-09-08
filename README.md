@@ -1,6 +1,6 @@
 # AgenticOS Gadget SDK
 
-Public SDK source foundation. npm release setup is in progress; not yet
+Public SDK source foundation, published on npm as version 0.1.0. Not yet
 integrated with Studio, and not a production SDK release. The owner selected
 Apache-2.0 for this SDK and its reviewed extracts. This does not relicense the
 private platform repositories or separately installed third-party dependencies.
@@ -24,7 +24,9 @@ development compiler, then `npm run test:package` for a real offline tarball
 installation and strict TypeScript check in an empty temporary consumer.
 The compiler is not an SDK runtime dependency.
 See [the transport example](docs/transport-example.md) for
-fixture usage and the live-host boundary. Public publication is still pending.
+fixture usage and the live-host boundary. See the
+[0.1.0 release](https://github.com/agenticos-stack/agenticos-gadget-sdk/releases/tag/v0.1.0)
+for verified npm artifacts and source-SHA evidence.
 See [the chat fixture](docs/chat-fixture.md) for isolated chat-adapter development
 and the verified gaps that must be addressed before live Studio integration.
 
@@ -63,4 +65,10 @@ These tests do not prove production tenant admission or schema upgrades.
 See [npm release preparation](docs/npm-release.md) for candidate packaging,
 owner setup and the non-publishing readiness workflow. No npm login or
 Cloudflare credentials are needed for these local checks. The owner approved
-the initial 0.1.0 publication; registry verification is a separate release step.
+the initial 0.1.0 publication; fresh anonymous registry installs and tarball
+hashes are verified. OIDC trusted publishing remains a separate setup step.
+
+```sh
+npm install @agenticos-dev/gadget-sdk@0.1.0
+npm install --save-dev @agenticos-dev/gadget-devkit@0.1.0
+```
