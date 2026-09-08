@@ -1,7 +1,7 @@
 {
   "name": "@agenticos-dev/gadget-shell",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "type": "module",
   "files": [
     "GadgetSplitView.svelte",

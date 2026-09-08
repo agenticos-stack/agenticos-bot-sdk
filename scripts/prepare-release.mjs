@@ -8,7 +8,8 @@ import { inspectRelease, RELEASE_PACKAGES } from "./release-readiness.mjs";
 import { validatePackedRelease } from "./packed-release-validation.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
-if (process.argv.length !== 4 || process.argv[2] !== "--output") throw new Error("Usage: node scripts/prepare-release.mjs --output <new-directory>");
+if (![4, 5].includes(process.argv.length) || process.argv[2] !== "--output"
+  || (process.argv.length === 5 && process.argv[4] !== "--bootstrap")) throw new Error("Usage: node scripts/prepare-release.mjs --output <new-directory> [--bootstrap]");
 const output = resolve(process.argv[3]);
 // Exclusive creation: never replace an earlier candidate's bytes/evidence.
 await mkdir(output);
@@ -17,7 +18,7 @@ try {
   const config = join(scratch, "npmrc"), globalConfig = join(scratch, "global-npmrc");
   await writeFile(config, ""); await writeFile(globalConfig, "");
   const env = { PATH: process.env.PATH, HOME: process.env.HOME, TMPDIR: scratch };
-  const report = await inspectRelease(root);
+  const report = await inspectRelease(root, { bootstrap: process.argv[4] === "--bootstrap" });
   const artifacts = [];
   for (const entry of RELEASE_PACKAGES) {
     const manifest = JSON.parse(await readFile(resolve(root, "packages", entry.directory, "package.json"), "utf8"));

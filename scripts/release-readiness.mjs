@@ -23,15 +23,20 @@ function exportPaths(value, result = []) {
 }
 
 /** Reports declared readiness, not an authorization, legal or registry audit. */
-export async function inspectRelease(root) {
+export async function inspectRelease(root, { bootstrap = false } = {}) {
   root = await realpath(root);
   const blockers = [], packages = [];
   const block = (code, message, name) => blockers.push({ code, message, ...(name ? { package: name } : {}) });
   const policy = await load(resolve(root, "release-policy.json"));
   if (policy.schemaVersion !== 1 || policy.repository !== repository) block("policy_invalid", "Release policy schema/repository must match the SDK.");
   for (const [key, expected] of [["ownerApproval", "approved"], ["sourceAudit", "approved"],
-    ["npmScopeOwnership", "verified"], ["trustedPublisher", "configured"]]) {
+    ["npmScopeOwnership", "verified"]]) {
     if (policy[key] !== expected) block(key, `${key} remains ${policy[key] ?? "unset"}.`);
+  }
+  if (bootstrap) {
+    if (policy.bootstrapPublish !== "approved") block("bootstrap_unapproved", "First-publication authorization is required.");
+  } else if (policy.trustedPublisher !== "configured") {
+    block("trustedPublisher", "Trusted publisher remains unconfigured.");
   }
   if (typeof policy.license !== "string" || !policy.license.trim() || policy.license === "UNLICENSED") block("license_unapproved", "Owner-selected SDK license remains unresolved.");
   if (!await exists(resolve(root, "LICENSE"))) block("license_missing", "Approved root LICENSE is absent.");
@@ -39,6 +44,7 @@ export async function inspectRelease(root) {
     const directory = resolve(root, "packages", entry.directory);
     const manifest = await load(resolve(directory, "package.json"));
     packages.push({ ...entry, version: manifest.version, private: manifest.private === true });
+    if (bootstrap && manifest.version !== "0.1.0") block("bootstrap_version", "Bootstrap approval covers only initial version 0.1.0.", entry.name);
     if (manifest.name !== entry.name) block("name_mismatch", "Package name differs from the explicit release list.", entry.name);
     if (manifest.private !== false) block("private_package", "Package has not been explicitly enabled for publication.", entry.name);
     if (typeof manifest.version !== "string" || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(manifest.version) || manifest.version === "0.0.0") block("version_unset", "Choose a release version.", entry.name);
@@ -71,13 +77,13 @@ export async function inspectRelease(root) {
     }
   }
   return { schemaVersion: 1, scope: "local-declared-release-readiness-not-authorization",
-    repository, ready: blockers.length === 0, packages, blockers };
+    repository, mode: bootstrap ? "owner-approved-first-publication" : "trusted-publisher", ready: blockers.length === 0, packages, blockers };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const args = process.argv.slice(2);
-  if (args.some(arg => arg !== "--strict")) throw new Error("Usage: node scripts/release-readiness.mjs [--strict]");
-  const report = await inspectRelease(fileURLToPath(new URL("../", import.meta.url)));
+  if (args.some(arg => !["--strict", "--bootstrap"].includes(arg))) throw new Error("Usage: node scripts/release-readiness.mjs [--strict] [--bootstrap]");
+  const report = await inspectRelease(fileURLToPath(new URL("../", import.meta.url)), { bootstrap: args.includes("--bootstrap") });
   console.log(JSON.stringify(report, null, 2));
   if (args.includes("--strict") && !report.ready) process.exitCode = 1;
 }
