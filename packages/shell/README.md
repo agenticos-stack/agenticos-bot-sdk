@@ -6,7 +6,7 @@ unmounted when collapsed; persistent chat state must remain host-owned.
 Pass localized `chatLabel` and `canvasLabel`. Give the parent a definite height.
 The shell does not load code, authenticate, grant permissions or run an agent.
 
-This source extraction is local/unpublished pending license/provenance review.
+This source extraction is local/unpublished, with owner-approved Apache-2.0 licensing.
 Studio has not switched to this package. Its mobile visual ordering retains
 canvas-first/chat-second behavior. The SDK candidate places canvas first in DOM
 and visual order on all screens, with chat on the right on desktop. This differs

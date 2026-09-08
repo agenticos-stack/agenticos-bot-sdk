@@ -4,8 +4,33 @@
   "private": true,
   "type": "module",
   "types": "./src/index.d.ts",
-  "exports": { ".": { "types": "./src/index.d.ts", "import": "./src/index.js", "default": "./src/index.js" } },
-  "files": ["src", "PROVENANCE.md"],
-  "dependencies": { "yjs": "13.6.32" },
-  "engines": { "node": ">=22.17" }
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js",
+      "default": "./src/index.js"
+    }
+  },
+  "files": [
+    "src",
+    "PROVENANCE.md",
+    "LICENSE",
+    "NOTICE",
+    "THIRD_PARTY_LICENSES.md"
+  ],
+  "dependencies": {
+    "yjs": "13.6.32"
+  },
+  "engines": {
+    "node": ">=22.17"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/agenticos-stack/agenticos-gadget-sdk.git",
+    "directory": "packages/archive-tools"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

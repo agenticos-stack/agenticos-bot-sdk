@@ -1,0 +1,15 @@
+AgenticOS Gadget Archive Tools
+Copyright 2026 AgenticOS SDK contributors (AgenticOS modifications).
+
+Derived from Cloudflare OS, published by Cloudflare and its contributors:
+https://github.com/cloudflare/cloudflare-os
+Revision aedcda8b3066ff666f57ae28ecef7341d6c2dee7
+packages/workshop-backend/src/blueprint-archive.ts
+Upstream license: Apache-2.0. No separate upstream NOTICE exists at this pin.
+
+Modifications: standalone in-memory codec, Yjs snapshot decoding/encoding,
+deterministic encoding, AgenticOS metadata, flat-member checks, TypeScript
+erasure and bounded public declarations. See PROVENANCE.md for source pins.
+
+Yjs, lib0 and isomorphic.js are separately installed MIT dependencies, not
+bundled into this package. Their notices are retained in THIRD_PARTY_LICENSES.md.

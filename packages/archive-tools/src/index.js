@@ -1,3 +1,9 @@
+/**
+ * SPDX-License-Identifier: Apache-2.0
+ * Modified from Cloudflare OS aedcda8b3066ff666f57ae28ecef7341d6c2dee7.
+ * AgenticOS standalone codec, deterministic encoder and TypeScript erasure.
+ * See NOTICE and PROVENANCE.md for attribution and exact source snapshots.
+ */
 import * as Y from "yjs";
 const ARCHIVE_MAGIC = 0xec2e2d3a2300e317n;
 const ARCHIVE_VERSION = 1;

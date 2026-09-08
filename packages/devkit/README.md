@@ -2,8 +2,8 @@
 
 Unpublished foundation. These commands operate on **trusted local source**;
 they do not sandbox scripts, authorize publishing, install an agent into a
-workspace, or prove Cloudflare runtime compatibility. The public SDK license
-and canonical API-consumer migration are still pending.
+workspace, or prove Cloudflare runtime compatibility. The public SDK uses
+owner-approved Apache-2.0; canonical API-consumer migration is still pending.
 
 Install the locally packed archive-tools, gadget-contract and devkit tarballs
 together into the independent application's devDependencies. The dependency

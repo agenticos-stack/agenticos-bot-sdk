@@ -4,7 +4,25 @@
   "private": true,
   "type": "module",
   "exports": "./src/index.js",
-  "files": ["src", "README.md"],
-  "dependencies": { "miniflare": "4.20260702.0" },
-  "engines": { "node": ">=22.17" }
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "dependencies": {
+    "miniflare": "4.20260702.0"
+  },
+  "engines": {
+    "node": ">=22.17"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/agenticos-stack/agenticos-gadget-sdk.git",
+    "directory": "packages/testkit"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

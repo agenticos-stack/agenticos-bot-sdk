@@ -3,7 +3,8 @@
 This is a new independent repository intended for public release, currently
 local and unpublished. No upstream staging exists yet; initial work uses
 `codex/foundation`, never main/staging commits. Remote publication is gated on
-owner-selected license and source/dependency audit. Do not import private API
+source/dependency audit and release verification. The owner approved Apache-2.0
+for the SDK and reviewed extracts on 2026-09-08. Do not import private API
 or Studio modules, copy their history, or embed credentials/customer fixtures.
 
 Use apply_patch for source edits. Keep packages framework-neutral unless their
@@ -20,7 +21,8 @@ Studio integration uses its own worktree. Bounded
 local extraction of the canonical archive codec and slim gadget validator is
 authorized for TASK-007, with exact source revision/hashes and dependency/license
 provenance. Do not copy the full private contract package or its history. This
-does not authorize public redistribution or change the pending license gate.
+does not authorize unrelated private source extraction. Preserve upstream
+licenses, attribution and modification notices before public redistribution.
 No public pushes, registry publication or extra dependencies without parent
 coordination. Run Node's focused built-in tests for this batch; real local
 workerd tests may use the parent-approved pinned Miniflare dependency.

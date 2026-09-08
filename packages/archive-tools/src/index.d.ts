@@ -1,4 +1,6 @@
-/** Bounded canonical codec declarations; see ../PROVENANCE.md. */
+/** SPDX-License-Identifier: Apache-2.0
+ * Modified, bounded canonical codec declarations; see ../NOTICE and ../PROVENANCE.md.
+ */
 export interface BlueprintArchiveMetadata {
   title: string;
   description?: string;

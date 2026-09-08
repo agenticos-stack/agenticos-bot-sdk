@@ -1,13 +1,28 @@
 {
   "name": "@agenticos-dev/gadget-sdk",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
-  "files": ["index.js", "index.d.ts", "README.md"],
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "README.md",
+    "LICENSE",
+    "NOTICE"
+  ],
   "exports": {
     ".": {
       "types": "./index.d.ts",
       "import": "./index.js"
     }
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/agenticos-stack/agenticos-gadget-sdk.git",
+    "directory": "packages/sdk"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

@@ -1,8 +1,9 @@
 # AgenticOS Gadget SDK
 
 Local foundation for a future public SDK repository. Not published, not yet
-integrated with Studio, and not a production SDK release. License selection is
-pending; no permission to redistribute existing platform code is implied.
+integrated with Studio, and not a production SDK release. The owner selected
+Apache-2.0 for this SDK and its reviewed extracts. This does not relicense the
+private platform repositories or separately installed third-party dependencies.
 
 This repository will own SDK transport contracts, development CLI, reusable
 shell, playground and testkit. Each actual gadget belongs to a separate

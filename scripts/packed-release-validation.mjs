@@ -13,6 +13,7 @@ export function validatePackedRelease(manifest, packed) {
   const files = new Set(packed.files.map(file => file.path));
   const required = ["package.json", ...targets(manifest.exports), ...targets(manifest.bin),
     ...targets(manifest.types), ...targets(manifest.main)];
+  if (manifest.license === "Apache-2.0") required.push("LICENSE", "NOTICE");
   for (const path of required) {
     if (!path || path.startsWith("/") || path.includes("\\") || path.includes("*")
       || path.split("/").includes("..")) throw new Error(`Non-concrete package target: ${path}`);

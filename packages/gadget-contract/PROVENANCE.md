@@ -1,6 +1,6 @@
 # Local extraction provenance
 
-Unpublished; source license approval remains a release gate.
+Unpublished candidate; owner approved Apache-2.0 for this extract on 2026-09-08.
 
 `src/index.js` is esbuild 0.28.1 TypeScript erasure of canonical API
 `packages/agenticos-api-contract/src/gadgets.ts` at commit
@@ -12,9 +12,10 @@ The only source imports were TypeScript-only `SideEffectClass` and
 whole private contract package, customer fixtures, credentials, or repository
 history is copied. No validator algorithm or archive format is reimplemented.
 
-The source file has no explicit standalone license grant. This snapshot is
-permitted only for local unpublished development pending source audit and owner
-license selection. Validation is compatibility checking, not authorization or
+The private source file had no standalone license grant. The owner's 2026-09-08
+approval licenses this bounded SDK snapshot under Apache-2.0, not the private
+API repository. Runtime equality to canonical TypeScript erasure was verified.
+Validation is compatibility checking, not authorization or
 proof of runtime isolation. API remains the canonical source until the separate
 versioned-consumer migration; compare this hash before refreshing the snapshot.
 
@@ -23,4 +24,4 @@ the exported validator/constants, their definition/field/action/view/requirement
 types, and validation result/issue types only. It omits instance envelopes,
 bindings assignments, command governance and all private contract imports.
 Comments are condensed. This selection does not alter runtime validation or
-resolve source redistribution approval.
+alter the separate private source repository's license.

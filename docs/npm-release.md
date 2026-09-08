@@ -94,13 +94,17 @@ The SDK packages, internal imports, consumers and release list now target
 `@agenticos-dev`. This is npm scope ownership evidence, not a source-license
 approval or proof that a token can publish every new package.
 
-Remaining gates: selected SDK license/source audit, public repository setup,
-release versions and package metadata, first package bootstrap and trusted
-publisher configuration. The temporary authentication file was removed after
+The owner approved Apache-2.0 and the reviewed extracts on 2026-09-08. All six
+SDK package directories now contain LICENSE/NOTICE, exact public repository
+metadata and initial version 0.1.0. The five initial npm candidates exclude the
+experimental testkit. See [source review](source-release-review-2026-09-08.md).
+
+Remaining gates: public repository setup, deliberate publication enablement,
+first package bootstrap and trusted publisher configuration. The temporary authentication file was removed after
 verification; initial publication will require a fresh private credential
 handoff. No registry write has been attempted.
 
 Scope-migration verification: 28 focused tests passed on 2026-09-08, including
 offline packed SDK installation, tooling/shell declaration consumers, devkit
 build/validation and release checks. Package manifests remain private until
-the outstanding license/source and release-configuration gates are resolved.
+the outstanding release-configuration and authentication gates are resolved.

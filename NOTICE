@@ -1,0 +1,12 @@
+AgenticOS Gadget SDK
+Copyright 2026 AgenticOS SDK contributors.
+
+Original SDK work and the owner-approved AgenticOS extracts are distributed
+under Apache-2.0. Third-party components retain their own licenses.
+
+The archive codec contains modifications derived from Cloudflare OS:
+https://github.com/cloudflare/cloudflare-os
+Revision aedcda8b3066ff666f57ae28ecef7341d6c2dee7
+packages/workshop-backend/src/blueprint-archive.ts
+Upstream license: Apache-2.0. No separate upstream NOTICE exists at this pin.
+See packages/archive-tools/PROVENANCE.md for the modification record.

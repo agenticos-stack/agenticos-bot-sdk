@@ -1,9 +1,32 @@
 {
   "name": "@agenticos-dev/gadget-shell",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
-  "files": ["GadgetSplitView.svelte", "GadgetSplitView.svelte.d.ts", "README.md"],
-  "exports": { "./GadgetSplitView.svelte": { "types": "./GadgetSplitView.svelte.d.ts", "svelte": "./GadgetSplitView.svelte", "default": "./GadgetSplitView.svelte" } },
-  "peerDependencies": { "svelte": "^5.56.3" }
+  "files": [
+    "GadgetSplitView.svelte",
+    "GadgetSplitView.svelte.d.ts",
+    "README.md",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "exports": {
+    "./GadgetSplitView.svelte": {
+      "types": "./GadgetSplitView.svelte.d.ts",
+      "svelte": "./GadgetSplitView.svelte",
+      "default": "./GadgetSplitView.svelte"
+    }
+  },
+  "peerDependencies": {
+    "svelte": "^5.56.3"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/agenticos-stack/agenticos-gadget-sdk.git",
+    "directory": "packages/shell"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

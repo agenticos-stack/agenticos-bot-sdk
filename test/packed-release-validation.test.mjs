@@ -22,3 +22,13 @@ test("packed version mismatches and non-concrete export targets fail closed", ()
     assert.throws(() => validatePackedRelease({ ...manifest, exports: path }, packed), /Non-concrete/);
   }
 });
+
+test("Apache candidates must contain both the license and attribution notice", () => {
+  const licensed = { ...manifest, license: "Apache-2.0" };
+  for (const missing of ["LICENSE", "NOTICE"]) {
+    const files = [...packed.files, ...["LICENSE", "NOTICE"].filter(path => path !== missing).map(path => ({ path }))];
+    assert.throws(() => validatePackedRelease(licensed, { ...packed, files }), /absent from npm artifact/);
+  }
+  assert.doesNotThrow(() => validatePackedRelease(licensed, { ...packed,
+    files: [...packed.files, { path: "LICENSE" }, { path: "NOTICE" }] }));
+});
