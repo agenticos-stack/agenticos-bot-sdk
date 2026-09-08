@@ -47,6 +47,20 @@ test("pending approvals/private packages fail closed", async t => {
   }
 });
 
+test("bootstrap is explicit, initial-version-only, and does not assert OIDC setup", async t => {
+  const { root, manifests, save } = await fixture(t);
+  const policy = JSON.parse(await readFile(join(root, "release-policy.json"), "utf8"));
+  await save("release-policy.json", { ...policy, trustedPublisher: "not-configured" });
+  assert.equal((await inspectRelease(root, { bootstrap: true })).ready, false);
+  await save("release-policy.json", { ...policy, trustedPublisher: "not-configured", bootstrapPublish: "approved" });
+  const report = await inspectRelease(root, { bootstrap: true });
+  assert.equal(report.ready, true);
+  assert.equal(report.mode, "owner-approved-first-publication");
+  assert.equal((await inspectRelease(root)).ready, false);
+  await save("packages/sdk/package.json", { ...manifests.get("sdk"), version: "0.2.0" });
+  assert.ok((await inspectRelease(root, { bootstrap: true })).blockers.some(row => row.code === "bootstrap_version"));
+});
+
 test("dependency closure refuses private paths and mismatched internal versions", async t => {
   const { root, manifests, save } = await fixture(t);
   await save("packages/devkit/package.json", { ...manifests.get("devkit"), dependencies: {

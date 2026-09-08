@@ -1,7 +1,7 @@
 {
   "name": "@agenticos-dev/gadget-archive-tools",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "type": "module",
   "types": "./src/index.d.ts",
   "exports": {

@@ -1,0 +1,30 @@
+name: SDK checks
+on:
+  pull_request:
+    branches: [staging]
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [staging]
+permissions:
+  contents: read
+jobs:
+  focused:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24.20.0'
+          package-manager-cache: false
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node scripts/prepare-offline-tests.mjs
+      - run: npm test
+      - run: npm run test:package
+      - run: npm run test:shell
+      - run: npm run test:devkit
+      - run: npm run test:release
+      - run: node scripts/release-readiness.mjs --bootstrap --strict
