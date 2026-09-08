@@ -23,6 +23,26 @@ The published shell entry requires a Svelte-capable bundler; the SDK transport
 package remains framework-neutral. No claim of production UI acceptance yet.
 # Shared design tokens (unreleased)
 
+## Native component set (unreleased)
+
+Import `tokens.css`, then `components.css`. Use native HTML with `bot-button`,
+`bot-input`, `bot-card`/`bot-card-body`, `bot-toolbar`, `bot-field`, `bot-badge`
+and `bot-empty`. Primary buttons take `data-variant="primary"`; use actual
+`disabled`, associated labels, and `aria-invalid`/`aria-describedby` for errors.
+Loading actions need visible text plus `aria-busy`; CSS does not prevent repeat
+submissions. Do not use ARIA tabs without implementing their keyboard contract.
+
+Open `showcase.html` alongside both stylesheets for the static reference states.
+The set is framework-neutral; it does not inject branding, fetch fonts, manage
+data, or install a global reset. The spacing variables use a 4px scale and the
+control/card radii match Studio. Override variables, not component internals.
+
+`bot-drawer` styles a native dialog. It fills its **document**, so canvas scoping
+requires an iframe document. It is not a generic arbitrary-container overlay.
+The host owns chat and navigation; apps own open/close, unsaved edits and focus
+restoration. Shared behavioural wrappers and automated browser coverage remain
+follow-up work; this first set is a presentation API, not a full widget library.
+
 Import `@agenticos-dev/bot-shell/tokens.css` once in each document, including
 iframe canvases. This opt-in, framework-neutral CSS exports the existing
 AgenticOS light/dark semantic tokens without resetting elements, fetching fonts,
