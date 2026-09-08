@@ -37,8 +37,13 @@ Run `npm run test:devkit` for isolated tooling checks. To test an independently
 owned app from a clean temporary consumer, run:
 
 ```sh
+node scripts/prepare-offline-tests.mjs
 node scripts/check-independent-app.mjs /path/to/app-repository --trust-source
 ```
+
+The preparation command installs pinned public Yjs/Svelte roots into a
+disposable consumer to populate npm's metadata cache. It executes no lifecycle
+scripts and uses no credentials. The subsequent acceptance installs stay offline.
 
 This packs local tooling, copies only the app's source/build/test inputs,
 installs the dependency closure offline, tests/builds/validates, compares repeat

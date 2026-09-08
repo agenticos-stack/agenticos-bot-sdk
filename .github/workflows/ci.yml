@@ -21,6 +21,7 @@ jobs:
           node-version: '24.20.0'
           package-manager-cache: false
       - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node scripts/prepare-offline-tests.mjs
       - run: npm test
       - run: npm run test:package
       - run: npm run test:shell
