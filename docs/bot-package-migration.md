@@ -15,7 +15,8 @@ Replacement packages start at 0.1.0 and retain the existing APIs. Update package
 dependencies and import specifiers; do not rewrite blueprint keys, workspaces,
 `.gadget` archive extensions or platform protocol values. The devkit provides
 `bot-dev` and preserves `gadget-dev` as a compatibility alias. The GitHub
-repository name remains agenticos-gadget-sdk, outside this package rename.
+repository is now `agenticos-stack/agenticos-bot-sdk`. Use this repository for
+all five packages' npm trusted-publisher settings; do not use the old name.
 
 Internal public-package dependencies use only bot names and exact versions.
 The experimental testkit is renamed locally to `@agenticos-dev/bot-testkit`
@@ -23,8 +24,9 @@ but remains private/unpublished. Existing application repositories, including
 Notes, require their own dependency migration; this change does not silently
 change their installed artifacts or platform identity.
 
-The previously published gadget 0.1.0 tarballs and release evidence remain
-immutable. Only after new bot packages pass anonymous registry-install and
-hash checks should the old 0.1.0 versions receive npm deprecation messages
-pointing to their replacements. Do not unpublish old versions or overwrite
-their bytes. Initial gadget release evidence is retained separately.
+The bot 0.1.0 packages passed anonymous registry installation and hash checks.
+The owner subsequently reported deleting the old npm packages. Do not depend
+on their availability or recreate them: use only bot packages going forward.
+Initial gadget release evidence is retained as historical evidence, not as an
+installation recommendation. Existing bot 0.1.0 tarballs still contain their
+original repository metadata; corrected metadata ships in the next version.

@@ -5,10 +5,10 @@ integrated with Studio, and not a production SDK release. The owner selected
 Apache-2.0 for this SDK and its reviewed extracts. This does not relicense the
 private platform repositories or separately installed third-party dependencies.
 
-The public npm family is now `@agenticos-dev/bot-*`, replacing the initially
-published `@agenticos-dev/gadget-*` names. The GitHub repository name, `.gadget`
-archive format, existing blueprint identities and exported API names remain
-unchanged. The devkit provides `bot-dev` plus the compatible `gadget-dev` alias.
+Use only the public npm family `@agenticos-dev/bot-*`, maintained in
+`agenticos-stack/agenticos-bot-sdk`. The `.gadget` archive format, existing
+blueprint identities and exported API names remain unchanged. The devkit
+provides `bot-dev` plus the compatible `gadget-dev` alias.
 
 This repository will own SDK transport contracts, development CLI, reusable
 shell, playground and testkit. Each actual gadget belongs to a separate
@@ -30,7 +30,7 @@ installation and strict TypeScript check in an empty temporary consumer.
 The compiler is not an SDK runtime dependency.
 See [the transport example](docs/transport-example.md) for
 fixture usage and the live-host boundary. See the
-[0.1.0 release](https://github.com/agenticos-stack/agenticos-gadget-sdk/releases/tag/v0.1.0)
+[0.1.0 release](https://github.com/agenticos-stack/agenticos-bot-sdk/releases/tag/bot-v0.1.0)
 for verified npm artifacts and source-SHA evidence.
 See [the chat fixture](docs/chat-fixture.md) for isolated chat-adapter development
 and the verified gaps that must be addressed before live Studio integration.
