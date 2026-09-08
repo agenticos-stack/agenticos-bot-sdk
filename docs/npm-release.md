@@ -2,8 +2,11 @@
 
 Current naming: the owner requested `@agenticos-dev/bot-*` on 2026-09-08.
 The original `gadget-*` 0.1.0 release evidence below is historical and retained.
-The rename publishes new package names; it does not overwrite or unpublish old
-versions. Old versions receive replacement notices only after new installs pass.
+The canonical repository is now `agenticos-stack/agenticos-bot-sdk`; use it for
+all five packages' trusted-publisher settings. The owner subsequently reported
+deleting the old packages. Use only `bot-*`; do not recreate the old packages.
+The historical repository URLs below describe the initial release, not current
+configuration. Trusted publishing is still not configured.
 The archive format and platform identities still use `.gadget`/blueprint names.
 
 ## SDK packages and gadget apps are different deliverables

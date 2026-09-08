@@ -11,7 +11,7 @@ export const RELEASE_PACKAGES = Object.freeze([
   { directory: "shell", name: "@agenticos-dev/bot-shell" },
   { directory: "devkit", name: "@agenticos-dev/bot-devkit" }
 ]);
-const repository = "agenticos-stack/agenticos-gadget-sdk";
+const repository = "agenticos-stack/agenticos-bot-sdk";
 const load = async path => JSON.parse(await readFile(path, "utf8"));
 const exists = async path => { try { await access(path); return true; } catch { return false; } };
 const relativeFile = value => typeof value === "string" && value.length > 0 && !isAbsolute(value)
