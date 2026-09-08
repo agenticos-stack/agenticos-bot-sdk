@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.js",
-    "./local-session": "./src/local-session.js"
+    "./local-session": "./src/local-session.js",
+    "./local-state": "./src/local-state.js"
   },
   "files": [
     "src",

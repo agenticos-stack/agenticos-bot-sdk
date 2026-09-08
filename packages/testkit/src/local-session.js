@@ -4,7 +4,7 @@ import { createFacetTestkit } from './index.js';
 /** Login-free trusted-source development session. Never deploy this adapter.
  * Identity and method admission are host-owned, not fields supplied by callers.
  * No outbound network/bindings are supplied by the underlying facet testkit. */
-export async function createLocalSession({ modules, allowedMethods, seed = [], origins }) {
+export async function createLocalSession({ modules, allowedMethods, seed = [], origins, stateDirectory }) {
   if (!Array.isArray(origins) || !origins.length || origins.some(value => {
     try {
       const url = new URL(value);
@@ -14,7 +14,7 @@ export async function createLocalSession({ modules, allowedMethods, seed = [], o
   })) throw new TypeError('Explicit HTTP loopback origins required');
   if (!Array.isArray(seed)) throw new TypeError('seed must be an array');
   const methods = [...new Set([...allowedMethods, ...seed.map(call => call.method)])];
-  const rig = await createFacetTestkit({ modules, allowedMethods: methods });
+  const rig = await createFacetTestkit({ modules, allowedMethods: methods, stateDirectory });
   const identity = Object.freeze({ workspace: 'local-developer', facet: 'local-app' });
   const token = randomBytes(32).toString('hex');
   const call = (method, args = []) => rig.call({ ...identity, method, args });

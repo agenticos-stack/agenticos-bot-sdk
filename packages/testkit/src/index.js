@@ -3,6 +3,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Miniflare } from "miniflare";
+import { acquireLocalState } from './local-state.js';
 
 const RESERVED = new Set(["constructor", "fetch", "connect", "alarm", "then", "__proto__", "toString"]);
 const validName = value => typeof value === "string" && /^[a-zA-Z0-9:_-]{1,160}$/.test(value);
@@ -12,7 +13,7 @@ const validName = value => typeof value === "string" && /^[a-zA-Z0-9:_-]{1,160}$
  * Explicit allowedMethods are test routing, never production authorization.
  * Callers must await dispose() in finally. One runtime lives at a time.
  */
-export async function createFacetTestkit({ modules, allowedMethods }) {
+export async function createFacetTestkit({ modules, allowedMethods, stateDirectory }) {
   if (!modules || typeof modules !== "object" || Array.isArray(modules)
     || typeof modules["server.js"] !== "string") throw new TypeError("modules must include server.js source");
   for (const [name, source] of Object.entries(modules)) {
@@ -27,7 +28,8 @@ export async function createFacetTestkit({ modules, allowedMethods }) {
   const code = Object.fromEntries(Object.entries(modules).sort(([a], [b]) => a.localeCompare(b)));
   const methods = [...new Set(allowedMethods)];
   const script = await readFile(new URL("./host.js", import.meta.url), "utf8");
-  const directory = await mkdtemp(join(tmpdir(), "agenticos-facet-testkit-"));
+  const state = stateDirectory === undefined ? null : await acquireLocalState(stateDirectory);
+  const directory = state?.directory ?? await mkdtemp(join(tmpdir(), "agenticos-facet-testkit-"));
   const options = {
     name: "agenticos-facet-testkit",
     script,
@@ -61,8 +63,14 @@ export async function createFacetTestkit({ modules, allowedMethods }) {
   async function dispose() {
     if (disposed) return;
     disposed = true;
-    try { await runtime?.dispose(); }
-    finally { await rm(directory, { recursive: true, force: true }); }
+    if (state) {
+      // A failed shutdown must retain the lock: an old writer may still exist.
+      await runtime?.dispose();
+      await state.release();
+    } else {
+      try { await runtime?.dispose(); }
+      finally { await rm(directory, { recursive: true, force: true }); }
+    }
   }
   try { await start(); }
   catch (error) { await dispose(); throw error; }
