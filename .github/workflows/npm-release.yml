@@ -48,6 +48,10 @@ jobs:
         with:
           name: npm-release-${{ github.sha }}
           path: .release-candidate/
+          # .release-candidate is dot-prefixed, and upload-artifact skips hidden
+          # paths by default: without this the upload finds nothing and the step
+          # fails (or, for the receipt, warns and drops it).
+          include-hidden-files: true
           retention-days: 30
           if-no-files-found: error
   publish:
@@ -80,5 +84,9 @@ jobs:
         with:
           name: npm-publication-${{ github.run_id }}-${{ github.run_attempt }}
           path: .release-candidate/publication.json
+          # .release-candidate is dot-prefixed, and upload-artifact skips hidden
+          # paths by default: without this the upload finds nothing and the step
+          # fails (or, for the receipt, warns and drops it).
+          include-hidden-files: true
           retention-days: 90
           if-no-files-found: warn

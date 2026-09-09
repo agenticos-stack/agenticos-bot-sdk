@@ -9,7 +9,7 @@
     "test:shell": "node --test test/shell.test.mjs",
     "test:devkit": "node --test packages/devkit/test/*.test.mjs",
     "test:testkit": "node --test --test-concurrency=1 packages/testkit/test/*.test.mjs",
-    "test:release": "node --test test/release-readiness.test.mjs test/packed-release-validation.test.mjs test/publish-release.test.mjs",
+    "test:release": "node --test test/release-readiness.test.mjs test/packed-release-validation.test.mjs test/publish-release.test.mjs test/release-workflow-artifacts.test.mjs",
     "release:check": "node scripts/release-readiness.mjs",
     "preview:shell": "node scripts/preview-shell.mjs"
   },
