@@ -8,5 +8,5 @@
   "sourceAudit": "approved",
   "npmScopeOwnership": "verified",
   "npmScope": "@agenticos-dev",
-  "trustedPublisher": "not-configured"
+  "trustedPublisher": "configured"
 }
