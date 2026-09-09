@@ -1,6 +1,6 @@
 {
   "name": "@agenticos-dev/bot-devkit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "type": "module",
   "types": "./src/index.d.ts",
@@ -9,6 +9,11 @@
       "types": "./src/index.d.ts",
       "import": "./src/index.js",
       "default": "./src/index.js"
+    },
+    "./session": {
+      "types": "./src/session.d.ts",
+      "import": "./src/session.mjs",
+      "default": "./src/session.mjs"
     }
   },
   "bin": {
