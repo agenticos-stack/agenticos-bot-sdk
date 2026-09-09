@@ -44,7 +44,17 @@ export async function inspectRelease(root, { bootstrap = false } = {}) {
     const directory = resolve(root, "packages", entry.directory);
     const manifest = await load(resolve(directory, "package.json"));
     packages.push({ ...entry, version: manifest.version, private: manifest.private === true });
-    if (bootstrap && manifest.version !== "0.1.0") block("bootstrap_version", "Bootstrap approval covers only initial version 0.1.0.", entry.name);
+    // The version a first publication may claim is policy, not a constant.
+    // npm burns an unpublished version permanently: @agenticos-dev/bot-devkit@0.1.0
+    // was published 2026-09-08 and retracted a minute later during the rename to
+    // the bot-* family, so that name and version can never be published again by
+    // anyone. Pinning the number here means a package npm has locked us out of can
+    // never have a first publication at all. Every package without an entry in
+    // bootstrapVersions still has to be 0.1.0.
+    const bootstrapVersion = policy.bootstrapVersions?.[entry.name] ?? "0.1.0";
+    if (bootstrap && manifest.version !== bootstrapVersion) {
+      block("bootstrap_version", `Bootstrap approval for this package covers version ${bootstrapVersion}.`, entry.name);
+    }
     if (manifest.name !== entry.name) block("name_mismatch", "Package name differs from the explicit release list.", entry.name);
     if (manifest.private !== false) block("private_package", "Package has not been explicitly enabled for publication.", entry.name);
     if (typeof manifest.version !== "string" || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(manifest.version) || manifest.version === "0.0.0") block("version_unset", "Choose a release version.", entry.name);
