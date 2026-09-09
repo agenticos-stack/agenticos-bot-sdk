@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { inspectRelease, RELEASE_PACKAGES } from "./release-readiness.mjs";
-import { validatePackedRelease } from "./packed-release-validation.mjs";
+import { packedEntry, validatePackedRelease } from "./packed-release-validation.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 if (![4, 5].includes(process.argv.length) || process.argv[2] !== "--output"
@@ -22,9 +22,10 @@ try {
   const artifacts = [];
   for (const entry of RELEASE_PACKAGES) {
     const manifest = JSON.parse(await readFile(resolve(root, "packages", entry.directory, "package.json"), "utf8"));
-    const [packed] = JSON.parse(execFileSync("npm", ["--userconfig", config, "--globalconfig", globalConfig,
+    // Shape of `npm pack --json` differs by npm major; packedEntry reads both.
+    const packed = packedEntry(JSON.parse(execFileSync("npm", ["--userconfig", config, "--globalconfig", globalConfig,
       "pack", resolve(root, "packages", entry.directory), "--offline", "--ignore-scripts", "--json", "--pack-destination", output
-    ], { cwd: scratch, env, encoding: "utf8", timeout: 60000 }));
+    ], { cwd: scratch, env, encoding: "utf8", timeout: 60000 })));
     if (packed.name !== entry.name || basename(packed.filename) !== packed.filename) throw new Error("Unexpected packed package identity.");
     validatePackedRelease(manifest, packed);
     const paths = packed.files.map(file => file.path);
