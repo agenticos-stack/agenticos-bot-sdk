@@ -9,6 +9,11 @@
       "types": "./src/index.d.ts",
       "import": "./src/index.js",
       "default": "./src/index.js"
+    },
+    "./session": {
+      "types": "./src/session.d.ts",
+      "import": "./src/session.mjs",
+      "default": "./src/session.mjs"
     }
   },
   "bin": {
