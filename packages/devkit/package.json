@@ -1,6 +1,6 @@
 {
   "name": "@agenticos-dev/bot-devkit",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": false,
   "type": "module",
   "types": "./src/index.d.ts",
@@ -28,8 +28,8 @@
     "NOTICE"
   ],
   "dependencies": {
-    "@agenticos-dev/bot-archive-tools": "0.1.0",
-    "@agenticos-dev/bot-contract": "0.1.0"
+    "@agenticos-dev/bot-archive-tools": "0.2.0",
+    "@agenticos-dev/bot-contract": "0.2.0"
   },
   "engines": {
     "node": ">=22.17"
