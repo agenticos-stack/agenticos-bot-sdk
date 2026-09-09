@@ -15,7 +15,7 @@ const USAGE = [
   '  bot-dev login [--api <origin>] [--email <address>] [--org <id>]',
   '  bot-dev logout [--api <origin>]',
   '  bot-dev whoami [--api <origin>]',
-  '  bot-dev dev --gadget <key> [--title <text>] [--api <origin>] [--org <id>] -- <command...>',
+  '  bot-dev dev --gadget <key> [--title <text>] [--api <origin>] [--org <id>] [--fresh] -- <command...>',
   '  bot-dev init <new-directory> --template <reviewed-directory> --name <name>',
   '  bot-dev check <directory> --trust-source',
   '  bot-dev pack <directory> --trust-source --output <new.gadget>'
@@ -89,7 +89,7 @@ async function dev(options, argv) {
   if (separator === -1 || separator === argv.length - 1) {
     throw new Error('Name the host command after `--`, for example: bot-dev dev --gadget social_localization -- pnpm preview');
   }
-  const parsed = parseOptions(argv.slice(0, separator), ['api', 'org', 'gadget', 'title']);
+  const parsed = parseOptions(argv.slice(0, separator), ['api', 'org', 'gadget', 'title', 'fresh'], ['fresh']);
   const [file, ...args] = argv.slice(separator + 1);
   const apiOrigin = parsed.api || DEFAULT_API_ORIGIN;
   const credential = await readCredential({ apiOrigin });
@@ -97,12 +97,14 @@ async function dev(options, argv) {
   if (parsed.org) credential.orgId = parsed.org;
 
   const session = await startDevSession({
-    apiOrigin, credential, gadgetKey: parsed.gadget, title: parsed.title
+    apiOrigin, credential, gadgetKey: parsed.gadget, title: parsed.title, fresh: Boolean(parsed.fresh)
   });
   // The workspace id is a room somebody can open and archive; the token is a
   // credential and is not printed.
   console.log(`Development session ${session.workspaceId} on ${session.apiOrigin}, valid until ${new Date(session.expiresAtMs).toISOString()}.`);
-  console.log('Archive that conversation to end it early.');
+  console.log(session.reused
+    ? 'Rejoined the session already open for this gadget. Pass --fresh to start a new conversation.'
+    : 'Archive that conversation to end it early.');
 
   const child = spawn(file, args, {
     stdio: 'inherit',

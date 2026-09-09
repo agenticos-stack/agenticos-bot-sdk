@@ -69,7 +69,28 @@ export declare function startDevSession(input: {
   credential: StoredCredential;
   gadgetKey: string;
   title?: string;
+  /** Mint a new conversation even when a live one is remembered. */
+  fresh?: boolean;
+  env?: CredentialEnv;
+  now?: () => number;
   fetcher?: typeof fetch;
-}): Promise<DevSession>;
+}): Promise<DevSession & { reused: boolean }>;
+
+/** A remembered, still-live session for this gadget, or null. */
+export declare function rememberedDevSession(input: {
+  apiOrigin: string;
+  gadgetKey: string;
+  orgId?: string;
+  env?: CredentialEnv;
+  now?: () => number;
+}): Promise<(DevSession & { expiresAtMs: number }) | null>;
+
+/** Forget a remembered session, so the next run starts a fresh room. */
+export declare function forgetDevSession(input: {
+  apiOrigin?: string;
+  gadgetKey: string;
+  orgId?: string;
+  env?: CredentialEnv;
+}): Promise<boolean>;
 
 export declare function devSessionEnv(session: DevSession): Record<string, string>;
