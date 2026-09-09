@@ -5,6 +5,10 @@ import { resolve, basename } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { RELEASE_PACKAGES } from './release-readiness.mjs';
 
+/** How long a freshly published version may take to become readable. */
+export const PROPAGATION_TIMEOUT_MS = 300000;
+export const PROPAGATION_POLL_MS = 5000;
+
 export function validateCandidate(candidate, sha) {
   if (!/^[a-f0-9]{40}$/.test(sha ?? '') || candidate.sourceCommit !== sha
     || !candidate.ready || candidate.sourceTreeDirty || candidate.blockers?.length !== 0
@@ -18,6 +22,43 @@ export function validateCandidate(candidate, sha) {
       || basename(artifact.filename) !== artifact.filename
       || !/^[a-f0-9]{64}$/.test(artifact.sha256)) throw new Error('Invalid artifact identity');
   });
+}
+
+/**
+ * Wait for a published version's integrity to MATCH, not merely for its
+ * version document to appear.
+ *
+ * npm answers a successful publish with "Your package is being processed and
+ * may take a few minutes to become available", and the 0.2.0 release proved it
+ * means that: all five packages published correctly, and the run went red
+ * anyway because the check gave the registry sixty seconds and then read
+ * `undefined`.
+ *
+ * The loop it replaces had two faults, and only the first is obvious. It
+ * stopped as soon as the document existed, so a document that arrived without
+ * a settled `dist` failed the single check that followed; and sixty seconds is
+ * not "a few minutes". A slow registry has to read as slow, never as corrupt
+ * bytes — the failure that invents is more alarming than the one it hides, and
+ * it sends someone hunting a tampered artifact that was never there.
+ */
+export async function awaitPublishedIntegrity({
+  artifact, integrity, lookup,
+  timeoutMs = PROPAGATION_TIMEOUT_MS, pollMs = PROPAGATION_POLL_MS,
+  now = Date.now, sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
+}) {
+  const deadline = now() + timeoutMs;
+  for (;;) {
+    const published = await lookup(artifact);
+    if (published?.dist?.integrity === integrity) return published;
+    if (now() >= deadline) {
+      // Name which of the two it was. They need different responses: one is a
+      // registry to wait on, the other is bytes to investigate.
+      throw new Error(published
+        ? `Published integrity does not match after ${timeoutMs / 1000}s: registry reports ${published?.dist?.integrity ?? 'no integrity'}, expected ${integrity}.`
+        : `${artifact.name}@${artifact.version} did not appear on the registry within ${timeoutMs / 1000}s. It may still be processing; check before republishing.`);
+    }
+    await sleep(pollMs);
+  }
 }
 
 async function metadata(artifact) {
@@ -54,14 +95,8 @@ async function main() {
       receipt.artifacts.push(entry); await save();
       execFileSync('npm', ['publish', resolve('.release-candidate', artifact.filename), '--access=public', '--ignore-scripts', '--registry=https://registry.npmjs.org/'], { stdio: 'inherit', timeout: 120000 });
       entry.status = 'published'; await save();
-      let published;
-      for (let attempt = 0; attempt < 12; attempt++) {
-        published = await metadata(artifact);
-        if (published) break;
-        await new Promise(resolve => setTimeout(resolve, 5000));
-      }
       const integrity = 'sha512-' + createHash('sha512').update(bytes.get(artifact.name)).digest('base64');
-      if (published?.dist?.integrity !== integrity) throw new Error('Published integrity not verified');
+      await awaitPublishedIntegrity({ artifact, integrity, lookup: metadata });
       entry.status = 'integrity-verified'; await save();
     }
     receipt.status = 'published-integrity-verified';
