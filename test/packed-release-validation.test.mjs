@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { validatePackedRelease } from "../scripts/packed-release-validation.mjs";
+import { packedEntry, validatePackedRelease } from "../scripts/packed-release-validation.mjs";
 
 const manifest = { name: "@agenticos-dev/example", version: "0.1.0",
   exports: { ".": { types: "./src/index.d.ts", import: "./src/index.js" } },
@@ -31,4 +31,16 @@ test("Apache candidates must contain both the license and attribution notice", (
   }
   assert.doesNotThrow(() => validatePackedRelease(licensed, { ...packed,
     files: [...packed.files, { path: "LICENSE" }, { path: "NOTICE" }] }));
+});
+
+test("the packed entry is read from either npm pack --json shape", () => {
+  // npm <= 11 emits an array; npm >= 12 an object keyed by package name.
+  assert.deepEqual(packedEntry([packed]), packed);
+  assert.deepEqual(packedEntry({ [packed.name]: packed }), packed);
+});
+
+test("an empty or non-object pack result fails closed rather than reading undefined", () => {
+  for (const empty of [[], {}, null, undefined, "", 0, [null], { a: "text" }]) {
+    assert.throws(() => packedEntry(empty), /no packed entry/);
+  }
 });
