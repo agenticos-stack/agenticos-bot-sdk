@@ -7,6 +7,8 @@ export interface GadgetSplitViewProps {
   canvasLabel?: string;
   canvasScroll?: "auto" | "clip";
   chatOpen?: boolean;
+  chatSide?: "left" | "right";
+  mobilePane?: "chat" | "canvas" | "both";
 }
 
 /** Presentation only. Compiling this entry requires a Svelte-capable bundler. */

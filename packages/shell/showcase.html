@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bot UI components</title>
+<link rel="stylesheet" href="./tokens.css"><link rel="stylesheet" href="./components.css">
+<style>body{margin:0;padding:24px;background:var(--color-paper);color:var(--color-ink);font:14px/1.7 var(--font-sans)}main{max-width:900px;margin:auto;display:grid;gap:24px}h1,h2,p{margin:0 0 12px}section{padding:24px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}</style></head>
+<body><main><header><h1>Bot UI</h1><p>Shared native controls · English / <span lang="zh-HK">繁體中文</span></p><span class="bot-badge">Development reference</span></header>
+<section class="bot-card"><h2>Actions</h2><div class="bot-toolbar"><button class="bot-button" data-variant="primary">Save draft · 儲存草稿</button><button class="bot-button">Cancel · 取消</button><button class="bot-button" disabled>Unavailable</button><button class="bot-button" disabled aria-busy="true">Saving…</button></div></section>
+<section class="bot-card"><h2>Fields</h2><div class="grid"><div class="bot-field"><label for="caption">Caption · 文案</label><textarea class="bot-input" id="caption">Review the source before publishing.</textarea></div><div class="bot-field"><label for="language">Language · 語言</label><select class="bot-input" id="language"><option>English</option><option>繁體中文（香港）</option></select><label for="invalid">Validation error</label><input class="bot-input" id="invalid" aria-invalid="true" aria-describedby="error"><p id="error">Enter a title before continuing.</p></div></div></section>
+<section class="bot-card"><h2>Empty state</h2><div class="bot-empty">No content yet. Add a source to get started.</div></section>
+<section class="bot-card"><h2>Drawer contract</h2><p>Use a native dialog with bot-drawer, containing bot-drawer-sheet and head/body/actions sections. Call showModal() inside the canvas document, not the parent. The application owns labels, confirmation of unsaved changes, and focus restoration.</p></section>
+</main></body></html>

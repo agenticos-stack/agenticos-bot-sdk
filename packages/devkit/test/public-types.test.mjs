@@ -37,6 +37,13 @@ test('packed public declarations work without private repos in NodeNext and Bund
       assert.ok(files.includes(declarations), `${manifest.name} must ship its types`);
       assert.ok(files.every(path => !/(^|\/)(test|node_modules|\.env|\.git)(\/|$)/.test(path)), 'No tests, dependency trees, or local credentials in packages');
       for (const [subpath, entry] of Object.entries(manifest.exports)) {
+        // CSS/HTML assets use the compact string form of Node's exports map;
+        // only declaration-bearing conditional maps need the `types` first
+        // condition. Both forms must still point at a file in the tarball.
+        if (typeof entry === 'string') {
+          assert.ok(files.includes(entry.replace(/^\.\//, '')), `${entry} exists in tarball`);
+          continue;
+        }
         assert.equal(Object.keys(entry)[0], 'types', `${subpath} resolves declarations first`);
         for (const target of Object.values(entry)) assert.ok(files.includes(target.replace(/^\.\//, '')), `${target} exists in tarball`);
       }

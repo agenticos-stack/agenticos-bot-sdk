@@ -1,5 +1,39 @@
 # Local DO facet testkit (unpublished)
 
+## Login-free local session (unpublished)
+
+`createLocalSession` from `@agenticos-dev/bot-testkit/local-session` wraps the
+facet runtime with a bounded JSON request interface. Supply trusted modules,
+explicit browser-callable `allowedMethods`, host-only `seed` calls, and exact
+HTTP loopback `origins`. The session chooses the synthetic workspace/facet;
+browser requests cannot select identities. The underlying runtime injects no
+credentials or outbound capabilities. Do not admit publishing methods.
+
+The local HTTP host must bind loopback, serve the session token only to its
+own preview document, limit request bodies before constructing Request objects,
+route POST requests to `session.handle`, and await `session.dispose` on shutdown.
+Requests require an exact Origin, JSON content type, and `x-bot-local-session`.
+This is a developer capability token, not platform login or tenant authorization.
+Seed methods are unavailable to browsers unless separately admitted.
+
+Storage is temporary by default. Pass an explicit absolute `stateDirectory`
+to retain SQLite across shutdown/startup. The parent directory must exist.
+Only SDK-marked directories can be reused; symlinked/unowned directories are
+refused. An exclusive sibling `.lock` directory prevents concurrent writers.
+Shutdown retains data and releases the lock only after workerd stops. A crash
+may leave a lock: verify its owner has stopped before manually removing it;
+the SDK never guesses that a lock is stale.
+
+Seed calls run on each start, so they must be transactional and idempotent.
+Session tokens rotate on restart. `archiveLocalState(stateDirectory)` from
+`@agenticos-dev/bot-testkit/local-state` refuses a running owner and renames
+the database to a unique sibling backup. Nothing is deleted; the next start
+initializes fresh state. Restore only with the preview stopped.
+
+No live agent execution, scheduled jobs or provider calls
+are enabled. This is not yet a complete browser dev server or Social Content
+integration; those consumers must be wired separately.
+
 This executes supplied app JavaScript in a **real local workerd runtime** through
 Worker Loader and `ctx.facets.get`, with each facet using Cloudflare's SQLite
 storage API. It is not a Node SQLite substitution or an emulated gadget class.
@@ -33,7 +67,8 @@ proxy so tests receive settled values rather than live proxy identities.
 `abortFacet` terminates the actual facet object and reacquires it on its next
 call. `restart` terminates the whole Miniflare/workerd process and starts a new
 one against the same uniquely allocated temporary storage directory. `dispose`
-stops the runtime and removes only that allocated directory. HTTP is loopback
+stops the runtime and removes only temporary allocated directories (explicit
+persistent directories are retained). HTTP is loopback
 with an ephemeral port and always responds 404; tests use the DO namespace proxy.
 
 The dynamic code receives an empty environment and `globalOutbound: null`.
