@@ -176,3 +176,57 @@ export async function fetchSession({ apiOrigin = DEFAULT_API_ORIGIN, credential,
   const payload = await response.json().catch(() => null);
   return payload?.user ? { id: payload.user.id, email: payload.user.email } : null;
 }
+
+/**
+ * Start a gadget development session and hand back what a host needs.
+ *
+ * The credential never leaves this process: it authenticates one request, and
+ * what comes back is a session token scoped to one organization, one
+ * workspace, one gadget key, for eight hours. That is what a host is given —
+ * never the sign-in credential itself.
+ */
+export async function startDevSession({
+  apiOrigin = DEFAULT_API_ORIGIN,
+  credential,
+  gadgetKey,
+  title,
+  fetcher = fetch
+}) {
+  const origin = normalizeOrigin(apiOrigin);
+  const key = (gadgetKey || "").trim();
+  if (!/^[a-z][a-z0-9_]{0,63}$/.test(key)) {
+    throw new Error("A gadget key is a lowercase snake_case identifier, not display text.");
+  }
+  const response = await fetcher(`${origin}/v2/gadget-dev/sessions`, {
+    method: "POST",
+    headers: { ...authHeaders(credential), "content-type": "application/json", accept: "application/json" },
+    body: JSON.stringify(title ? { gadgetKey: key, title } : { gadgetKey: key }),
+    redirect: "error",
+    signal: AbortSignal.timeout(20000)
+  });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || !payload?.data?.devToken) {
+    const message = payload?.error?.message || "The development session could not be started.";
+    if (response.status === 401) {
+      throw new Error(`Not signed in, or the session expired (401): run \`bot-dev login\`.`);
+    }
+    throw new Error(`Could not start a development session (${response.status}): ${message}`);
+  }
+  const { devToken, workspaceId, expiresAtMs, title: roomTitle } = payload.data;
+  return { devToken, workspaceId, expiresAtMs, title: roomTitle, apiOrigin: origin };
+}
+
+/**
+ * The environment a gadget host reads.
+ *
+ * Generic names, not one gadget's: a host consumes a session it did not mint,
+ * and naming the variables after the gadget would make every new gadget invent
+ * its own spelling of the same three facts.
+ */
+export function devSessionEnv(session) {
+  return {
+    AGENTICOS_API_ORIGIN: session.apiOrigin,
+    AGENTICOS_GADGET_DEV_TOKEN: session.devToken,
+    AGENTICOS_GADGET_DEV_WORKSPACE_ID: session.workspaceId
+  };
+}

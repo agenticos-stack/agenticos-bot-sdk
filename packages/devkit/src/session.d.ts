@@ -55,3 +55,21 @@ export declare function fetchSession(input: {
   credential: StoredCredential;
   fetcher?: typeof fetch;
 }): Promise<{ id: string; email: string } | null>;
+
+export interface DevSession {
+  devToken: string;
+  workspaceId: string;
+  expiresAtMs: number;
+  title?: string;
+  apiOrigin: string;
+}
+
+export declare function startDevSession(input: {
+  apiOrigin?: string;
+  credential: StoredCredential;
+  gadgetKey: string;
+  title?: string;
+  fetcher?: typeof fetch;
+}): Promise<DevSession>;
+
+export declare function devSessionEnv(session: DevSession): Record<string, string>;

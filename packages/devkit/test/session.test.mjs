@@ -6,7 +6,7 @@ import { join, resolve } from 'node:path';
 
 import {
   ACTIVE_ORG_HEADER, DEFAULT_API_ORIGIN, authHeaders, clearCredential, completeSignIn,
-  credentialsPath, readCredential, requestSignInCode, writeCredential
+  credentialsPath, devSessionEnv, readCredential, requestSignInCode, startDevSession, writeCredential
 } from '../src/session.mjs';
 
 async function sandbox() {
@@ -122,4 +122,66 @@ test('the stored file never contains a password or the emailed code', async () =
   const raw = await readFile(credentialsPath(env), 'utf8');
   const stored = JSON.parse(raw)[DEFAULT_API_ORIGIN];
   assert.deepEqual(Object.keys(stored).sort(), ['email', 'orgId', 'signedInAt', 'token']);
+});
+
+test('mints a development session with the stored credential, never the credential itself', async () => {
+  let seen;
+  const session = await startDevSession({
+    credential: { token: 'sess', email: 'a@example.com', orgId: 'org_1', signedInAt: '' },
+    gadgetKey: 'social_localization',
+    title: 'Social Content',
+    fetcher: async (url, init) => {
+      seen = { url, init };
+      return {
+        ok: true,
+        status: 201,
+        json: async () => ({
+          data: { devToken: 'dev-token', workspaceId: 'chat_1', expiresAtMs: 1_770_000_000_000, title: '[gadget-dev] Social Content' }
+        })
+      };
+    }
+  });
+
+  assert.equal(seen.url, `${DEFAULT_API_ORIGIN}/v2/gadget-dev/sessions`);
+  assert.equal(seen.init.headers.authorization, 'Bearer sess');
+  assert.equal(seen.init.headers[ACTIVE_ORG_HEADER], 'org_1');
+  assert.deepEqual(JSON.parse(seen.init.body), { gadgetKey: 'social_localization', title: 'Social Content' });
+  assert.equal(session.devToken, 'dev-token');
+  assert.equal(session.workspaceId, 'chat_1');
+});
+
+test('refuses display text where a gadget key belongs, before any request', async () => {
+  let called = false;
+  await assert.rejects(
+    startDevSession({
+      credential: { token: 't', email: 'a@example.com', signedInAt: '' },
+      gadgetKey: 'Social Content',
+      fetcher: async () => { called = true; return { ok: true, status: 201, json: async () => ({}) }; }
+    }),
+    /snake_case/
+  );
+  assert.equal(called, false);
+});
+
+test('a 401 says to sign in again rather than reporting a mint failure', async () => {
+  const failure = await startDevSession({
+    credential: { token: 'stale', email: 'a@example.com', signedInAt: '' },
+    gadgetKey: 'notes',
+    fetcher: async () => ({ ok: false, status: 401, json: async () => ({ error: { message: 'Authentication required.' } }) })
+  }).catch((error) => error);
+  assert.match(failure.message, /bot-dev login/);
+});
+
+test("hands a host generic environment names, not one gadget spelling", () => {
+  const env = devSessionEnv({
+    devToken: 'dev-token',
+    workspaceId: 'chat_1',
+    expiresAtMs: 0,
+    apiOrigin: 'https://api.agenticos.hk'
+  });
+  assert.deepEqual(env, {
+    AGENTICOS_API_ORIGIN: 'https://api.agenticos.hk',
+    AGENTICOS_GADGET_DEV_TOKEN: 'dev-token',
+    AGENTICOS_GADGET_DEV_WORKSPACE_ID: 'chat_1'
+  });
 });

@@ -1,18 +1,21 @@
 #!/usr/bin/env node
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
+import { spawn } from 'node:child_process';
 import {
-  DEFAULT_API_ORIGIN, clearCredential, completeSignIn, credentialsPath,
-  fetchSession, readCredential, requestSignInCode, writeCredential
+  DEFAULT_API_ORIGIN, clearCredential, completeSignIn, credentialsPath, devSessionEnv,
+  fetchSession, readCredential, requestSignInCode, startDevSession, writeCredential
 } from './session.mjs';
 
 const PACKAGE_COMMANDS = ['init', 'check', 'pack'];
 const SESSION_COMMANDS = ['login', 'logout', 'whoami'];
+const DEV_COMMAND = 'dev';
 const USAGE = [
   'Usage:',
   '  bot-dev login [--api <origin>] [--email <address>] [--org <id>]',
   '  bot-dev logout [--api <origin>]',
   '  bot-dev whoami [--api <origin>]',
+  '  bot-dev dev --gadget <key> [--title <text>] [--api <origin>] [--org <id>] -- <command...>',
   '  bot-dev init <new-directory> --template <reviewed-directory> --name <name>',
   '  bot-dev check <directory> --trust-source',
   '  bot-dev pack <directory> --trust-source --output <new.gadget>'
@@ -74,10 +77,50 @@ async function whoami(options) {
   console.log(`${session.email} on ${apiOrigin}${credential.orgId ? ` (organization ${credential.orgId})` : ''}.`);
 }
 
+/**
+ * Mint a development session and run a gadget host with it.
+ *
+ * The host is handed a session token — one organization, one workspace, one
+ * gadget key, eight hours — through the child's environment. The sign-in
+ * credential stays in this process, and neither ever reaches stdout.
+ */
+async function dev(options, argv) {
+  const separator = argv.indexOf('--');
+  if (separator === -1 || separator === argv.length - 1) {
+    throw new Error('Name the host command after `--`, for example: bot-dev dev --gadget social_localization -- pnpm preview');
+  }
+  const parsed = parseOptions(argv.slice(0, separator), ['api', 'org', 'gadget', 'title']);
+  const [file, ...args] = argv.slice(separator + 1);
+  const apiOrigin = parsed.api || DEFAULT_API_ORIGIN;
+  const credential = await readCredential({ apiOrigin });
+  if (!credential) throw new Error(`Not signed in to ${apiOrigin}. Run \`bot-dev login\` first.`);
+  if (parsed.org) credential.orgId = parsed.org;
+
+  const session = await startDevSession({
+    apiOrigin, credential, gadgetKey: parsed.gadget, title: parsed.title
+  });
+  // The workspace id is a room somebody can open and archive; the token is a
+  // credential and is not printed.
+  console.log(`Development session ${session.workspaceId} on ${session.apiOrigin}, valid until ${new Date(session.expiresAtMs).toISOString()}.`);
+  console.log('Archive that conversation to end it early.');
+
+  const child = spawn(file, args, {
+    stdio: 'inherit',
+    env: { ...process.env, ...devSessionEnv(session) }
+  });
+  const code = await new Promise((resolveExit) => {
+    child.on('error', (error) => { console.error(error.message); resolveExit(1); });
+    child.on('close', (status, signal) => resolveExit(signal ? 1 : status ?? 0));
+  });
+  process.exitCode = code;
+}
+
 try {
   const [command, ...rest] = process.argv.slice(2);
 
-  if (SESSION_COMMANDS.includes(command)) {
+  if (command === DEV_COMMAND) {
+    await dev({}, rest);
+  } else if (SESSION_COMMANDS.includes(command)) {
     const options = parseOptions(rest, ['api', 'email', 'org']);
     if (command === 'login') await login(options);
     else if (command === 'logout') await logout(options);
