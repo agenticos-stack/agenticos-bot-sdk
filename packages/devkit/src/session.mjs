@@ -178,6 +178,74 @@ export async function fetchSession({ apiOrigin = DEFAULT_API_ORIGIN, credential,
 }
 
 /**
+ * Where a minted session is remembered, so a restart does not mint another.
+ *
+ * `bot-dev dev` used to start a NEW conversation on every invocation. Five
+ * `[gadget-dev]` rooms accumulated in one afternoon of ordinary restarts, and
+ * each one is a durable row an owner then has to find and archive. A session
+ * lasts eight hours; a restart inside that window should rejoin the one it
+ * already has.
+ *
+ * Kept beside the credential rather than in it: this is a cache of something
+ * the server issued, and losing it costs one extra room, never access.
+ */
+function sessionsPath(env = process.env) {
+  const base = env.XDG_CONFIG_HOME?.trim() || join(homedir(), ".config");
+  return join(base, "agenticos", "dev-sessions.json");
+}
+
+function sessionKey(apiOrigin, gadgetKey, orgId) {
+  return [apiOrigin, gadgetKey, orgId ?? ""].join("|");
+}
+
+async function readSessions(env = process.env) {
+  try {
+    return JSON.parse(await readFile(sessionsPath(env), "utf8")) ?? {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * A remembered session that is still worth rejoining, or null.
+ *
+ * Expiry is checked with a minute of headroom: a session that dies mid-run is
+ * worse than minting one, and the host validates it again on connect anyway.
+ */
+export async function rememberedDevSession({ apiOrigin, gadgetKey, orgId, env = process.env, now = Date.now }) {
+  const entry = (await readSessions(env))[sessionKey(normalizeOrigin(apiOrigin), gadgetKey, orgId)];
+  if (!entry?.devToken || !entry?.workspaceId) return null;
+  return Number(entry.expiresAtMs) - 60_000 > now() ? entry : null;
+}
+
+async function rememberDevSession({ apiOrigin, gadgetKey, orgId, session, env = process.env }) {
+  const path = sessionsPath(env);
+  const store = await readSessions(env);
+  store[sessionKey(apiOrigin, gadgetKey, orgId)] = {
+    devToken: session.devToken,
+    workspaceId: session.workspaceId,
+    expiresAtMs: session.expiresAtMs,
+    apiOrigin
+  };
+  await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+  await writeFile(path, `${JSON.stringify(store, null, 2)}\n`, { mode: 0o600 });
+  await chmod(path, 0o600);
+}
+
+/** Forget a remembered session, so the next run starts a fresh room. */
+export async function forgetDevSession({ apiOrigin = DEFAULT_API_ORIGIN, gadgetKey, orgId, env = process.env }) {
+  const path = sessionsPath(env);
+  const store = await readSessions(env);
+  const key = sessionKey(normalizeOrigin(apiOrigin), gadgetKey, orgId);
+  if (!(key in store)) return false;
+  delete store[key];
+  await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+  await writeFile(path, `${JSON.stringify(store, null, 2)}\n`, { mode: 0o600 });
+  await chmod(path, 0o600);
+  return true;
+}
+
+/**
  * Start a gadget development session and hand back what a host needs.
  *
  * The credential never leaves this process: it authenticates one request, and
@@ -190,12 +258,23 @@ export async function startDevSession({
   credential,
   gadgetKey,
   title,
+  fresh = false,
+  env = process.env,
+  now = Date.now,
   fetcher = fetch
 }) {
   const origin = normalizeOrigin(apiOrigin);
   const key = (gadgetKey || "").trim();
   if (!/^[a-z][a-z0-9_]{0,63}$/.test(key)) {
     throw new Error("A gadget key is a lowercase snake_case identifier, not display text.");
+  }
+  // Rejoin rather than mint. A restart inside the session's own lifetime is
+  // the common case, and every mint leaves a durable conversation behind.
+  if (!fresh) {
+    const remembered = await rememberedDevSession({
+      apiOrigin: origin, gadgetKey: key, orgId: credential?.orgId, env, now
+    });
+    if (remembered) return { ...remembered, apiOrigin: origin, reused: true };
   }
   const response = await fetcher(`${origin}/v2/gadget-dev/sessions`, {
     method: "POST",
@@ -213,7 +292,9 @@ export async function startDevSession({
     throw new Error(`Could not start a development session (${response.status}): ${message}`);
   }
   const { devToken, workspaceId, expiresAtMs, title: roomTitle } = payload.data;
-  return { devToken, workspaceId, expiresAtMs, title: roomTitle, apiOrigin: origin };
+  const session = { devToken, workspaceId, expiresAtMs, title: roomTitle, apiOrigin: origin };
+  await rememberDevSession({ apiOrigin: origin, gadgetKey: key, orgId: credential?.orgId, session, env });
+  return { ...session, reused: false };
 }
 
 /**

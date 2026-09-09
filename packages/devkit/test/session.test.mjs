@@ -6,7 +6,7 @@ import { join, resolve } from 'node:path';
 
 import {
   ACTIVE_ORG_HEADER, DEFAULT_API_ORIGIN, authHeaders, clearCredential, completeSignIn,
-  credentialsPath, devSessionEnv, readCredential, requestSignInCode, startDevSession, writeCredential
+  credentialsPath, devSessionEnv, forgetDevSession, readCredential, requestSignInCode, startDevSession, writeCredential
 } from '../src/session.mjs';
 
 async function sandbox() {
@@ -184,4 +184,97 @@ test("hands a host generic environment names, not one gadget spelling", () => {
     AGENTICOS_GADGET_DEV_TOKEN: 'dev-token',
     AGENTICOS_GADGET_DEV_WORKSPACE_ID: 'chat_1'
   });
+});
+
+test('rejoins a live session instead of minting another room', async () => {
+  const env = await sandbox();
+  const credential = { token: 'sess', email: 'a@example.com', orgId: 'org_1', signedInAt: '' };
+  let mints = 0;
+  const fetcher = async () => {
+    mints += 1;
+    return {
+      ok: true,
+      status: 201,
+      json: async () => ({
+        data: { devToken: 'dev-token', workspaceId: 'chat_1', expiresAtMs: Date.now() + 8 * 3600_000 }
+      })
+    };
+  };
+
+  const first = await startDevSession({ credential, gadgetKey: 'social_localization', env, fetcher });
+  assert.equal(first.reused, false);
+  assert.equal(mints, 1);
+
+  // A restart inside the session's own lifetime is the common case, and every
+  // mint leaves a durable conversation an owner has to find and archive.
+  const second = await startDevSession({ credential, gadgetKey: 'social_localization', env, fetcher });
+  assert.equal(second.reused, true);
+  assert.equal(second.workspaceId, 'chat_1');
+  assert.equal(mints, 1);
+});
+
+test('--fresh mints a new room even when one is remembered', async () => {
+  const env = await sandbox();
+  const credential = { token: 'sess', email: 'a@example.com', orgId: 'org_1', signedInAt: '' };
+  let mints = 0;
+  const fetcher = async () => {
+    mints += 1;
+    return {
+      ok: true, status: 201,
+      json: async () => ({
+        data: { devToken: 't', workspaceId: `chat_${mints}`, expiresAtMs: Date.now() + 8 * 3600_000 }
+      })
+    };
+  };
+  await startDevSession({ credential, gadgetKey: 'notes', env, fetcher });
+  const fresh = await startDevSession({ credential, gadgetKey: 'notes', env, fetcher, fresh: true });
+  assert.equal(fresh.reused, false);
+  assert.equal(fresh.workspaceId, 'chat_2');
+  assert.equal(mints, 2);
+});
+
+test('does not rejoin an expired session, and keeps gadgets and orgs apart', async () => {
+  const env = await sandbox();
+  const credential = { token: 'sess', email: 'a@example.com', orgId: 'org_1', signedInAt: '' };
+  let mints = 0;
+  const fetcher = async () => {
+    mints += 1;
+    return {
+      ok: true, status: 201,
+      json: async () => ({
+        data: { devToken: 't', workspaceId: `chat_${mints}`, expiresAtMs: Date.now() + 8 * 3600_000 }
+      })
+    };
+  };
+
+  await startDevSession({ credential, gadgetKey: 'notes', env, fetcher });
+  // Expired: a session that dies mid-run is worse than minting one.
+  const later = () => Date.now() + 9 * 3600_000;
+  const afterExpiry = await startDevSession({ credential, gadgetKey: 'notes', env, fetcher, now: later });
+  assert.equal(afterExpiry.reused, false);
+
+  // A different gadget, and a different organization, are different rooms.
+  await startDevSession({ credential, gadgetKey: 'other_gadget', env, fetcher });
+  const otherOrg = { ...credential, orgId: 'org_2' };
+  const inOtherOrg = await startDevSession({ credential: otherOrg, gadgetKey: 'notes', env, fetcher });
+  assert.equal(inOtherOrg.reused, false);
+  assert.equal(mints, 4);
+});
+
+test('forgetting a session makes the next run start a fresh room', async () => {
+  const env = await sandbox();
+  const credential = { token: 'sess', email: 'a@example.com', orgId: 'org_1', signedInAt: '' };
+  let mints = 0;
+  const fetcher = async () => {
+    mints += 1;
+    return {
+      ok: true, status: 201,
+      json: async () => ({ data: { devToken: 't', workspaceId: `chat_${mints}`, expiresAtMs: Date.now() + 8 * 3600_000 } })
+    };
+  };
+  await startDevSession({ credential, gadgetKey: 'notes', env, fetcher });
+  assert.equal(await forgetDevSession({ gadgetKey: 'notes', orgId: 'org_1', env }), true);
+  assert.equal(await forgetDevSession({ gadgetKey: 'notes', orgId: 'org_1', env }), false);
+  const next = await startDevSession({ credential, gadgetKey: 'notes', env, fetcher });
+  assert.equal(next.reused, false);
 });
