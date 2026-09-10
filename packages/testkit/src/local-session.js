@@ -1,5 +1,37 @@
 import { randomBytes } from 'node:crypto';
+import { readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { createFacetTestkit } from './index.js';
+
+/**
+ * The host credential for `/local-rpc`, stable for as long as the state is.
+ *
+ * This was minted fresh on every call, so every restart of a development host
+ * invalidated the token the browser was holding and the developer had to press
+ * "Start development session" again — after every edit to client code, which
+ * cannot hot-reload. The session was being thrown away for no reason except
+ * that the token was random.
+ *
+ * It lives beside the SQLite it guards, in a directory the testkit already
+ * owns at `0700`, and is written `0600`. That is the same trust boundary: a
+ * reader of this file can already read the data it protects. Resetting or
+ * archiving the state drops the token with it, which is the behaviour to want
+ * — a fresh state is a fresh session.
+ *
+ * An ephemeral run (no `stateDirectory`) keeps a random token. There is
+ * nowhere to persist it and nothing to come back to.
+ */
+async function sessionToken(stateDirectory) {
+  if (!stateDirectory) return randomBytes(32).toString('hex');
+  const path = join(stateDirectory, '.bot-session-token');
+  const existing = await readFile(path, 'utf8').catch(() => '');
+  if (/^[0-9a-f]{64}$/.test(existing.trim())) return existing.trim();
+  const minted = randomBytes(32).toString('hex');
+  // `flag: 'w'` and not 'wx': a half-written or corrupt token should be
+  // replaced, not turn every future start into an error nobody can clear.
+  await writeFile(path, `${minted}\n`, { mode: 0o600, flag: 'w' });
+  return minted;
+}
 
 /** Login-free trusted-source development session. Never deploy this adapter.
  * `doors`, when supplied, is the caller's own connected doors — see
@@ -20,7 +52,7 @@ export async function createLocalSession({ modules, allowedMethods, seed = [], o
   // never what a door is or whether one may be reached.
   const rig = await createFacetTestkit({ modules, allowedMethods: methods, stateDirectory, doors });
   const identity = Object.freeze({ workspace: 'local-developer', facet: 'local-app' });
-  const token = randomBytes(32).toString('hex');
+  const token = await sessionToken(stateDirectory);
   const call = (method, args = []) => rig.call({ ...identity, method, args });
   try { for (const entry of seed) await call(entry.method, entry.args); }
   catch (error) { await rig.dispose(); throw error; }
