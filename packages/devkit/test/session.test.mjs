@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdtemp, readFile, stat } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 
 import {
   ACTIVE_ORG_HEADER, DEFAULT_API_ORIGIN, authHeaders, clearCredential, completeSignIn,
@@ -278,3 +278,75 @@ test('forgetting a session makes the next run start a fresh room', async () => {
   const next = await startDevSession({ credential, gadgetKey: 'notes', env, fetcher });
   assert.equal(next.reused, false);
 });
+
+test('two checkouts of the same gadget are two developments, not one shared room', async () => {
+  /*
+   * The sessions file is per MACHINE, not per developer or per terminal, and
+   * several agents share one box here. Keyed only by
+   * (apiOrigin, gadgetKey, orgId), one session running `--fresh` minted a new
+   * conversation and silently repointed everyone else's key — no error, and a
+   * banner reading "Rejoined the session already open for this gadget" either
+   * way. Door grants are per conversation, so the next grant landed on a room
+   * nobody was running.
+   */
+  const env = await sandbox();
+  const credential = { token: 'sess', email: 'a@example.com', orgId: 'org_1', signedInAt: '' };
+  let mints = 0;
+  const fetcher = async () => {
+    mints += 1;
+    return {
+      ok: true, status: 201,
+      json: async () => ({
+        data: { devToken: 't', workspaceId: `chat_${mints}`, expiresAtMs: Date.now() + 8 * 3600_000 }
+      })
+    };
+  };
+  const start = (projectDir) =>
+    startDevSession({ credential, gadgetKey: 'social_localization', env, fetcher, projectDir });
+
+  const a = await start('/work/checkout-a');
+  const b = await start('/work/checkout-b');
+  assert.equal(a.workspaceId, 'chat_1');
+  assert.equal(b.workspaceId, 'chat_2');
+  assert.equal(b.reused, false, 'a second checkout must not adopt the first checkout\'s room');
+
+  // Each directory still rejoins its OWN room, which is the behaviour that
+  // stops every restart leaving a durable conversation behind.
+  assert.deepEqual(
+    [(await start('/work/checkout-a')).workspaceId, (await start('/work/checkout-b')).workspaceId],
+    ['chat_1', 'chat_2']
+  );
+  assert.equal(mints, 2);
+});
+
+test('a session remembered before this change is still rejoined once, then re-keyed', async () => {
+  // Upgrading the devkit must not orphan a room a developer is mid-session on.
+  const env = await sandbox();
+  const credential = { token: 'sess', email: 'a@example.com', orgId: 'org_1', signedInAt: '' };
+  let mints = 0;
+  const fetcher = async () => {
+    mints += 1;
+    return {
+      ok: true, status: 201,
+      json: async () => ({ data: { devToken: 't', workspaceId: `chat_${mints}`, expiresAtMs: Date.now() + 8 * 3600_000 } })
+    };
+  };
+
+  // Write the pre-change shape by hand: no project directory in the key.
+  const path = join(env.XDG_CONFIG_HOME, 'agenticos', 'dev-sessions.json');
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, JSON.stringify({
+    'https://api.agenticos.hk|social_localization|org_1': {
+      devToken: 'legacy', workspaceId: 'chat_legacy',
+      expiresAtMs: Date.now() + 8 * 3600_000, apiOrigin: 'https://api.agenticos.hk'
+    }
+  }));
+
+  const rejoined = await startDevSession({
+    credential, gadgetKey: 'social_localization', env, fetcher, projectDir: '/work/checkout-a'
+  });
+  assert.equal(rejoined.workspaceId, 'chat_legacy');
+  assert.equal(rejoined.reused, true);
+  assert.equal(mints, 0, 'the live room is rejoined, not replaced');
+});
+
