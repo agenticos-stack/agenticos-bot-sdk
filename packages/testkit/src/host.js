@@ -34,9 +34,23 @@ export class FixtureHost extends DurableObject {
 
   async invoke(name, method, args) {
     if (!this.env.METHODS.includes(method)) throw new Error("Fixture method not admitted");
-    // Miniflare's Node proxy retains object results as live RPC proxies. Serialize
-    // here so assertions inspect a settled JSON value, not proxy identity.
-    return JSON.stringify(await this.#facet(name)[method](...args));
+    /*
+     * ENCODE BEFORE SERIALISING. This line is where typed arrays die.
+     *
+     * Miniflare's Node proxy retains object results as live RPC proxies, so
+     * the result is serialised here rather than handed on as proxy identity.
+     * But `JSON.stringify` has no representation for a Uint8Array: it writes
+     * an object with one property per byte, about nine characters each, and
+     * everything downstream then sees a plain object that no longer knows what
+     * it was.
+     *
+     * `encodeBytes` first ran at the reply boundary in `local-session.js`,
+     * which is one line too late — this stringify had already flattened the
+     * value and the encoder passed it through untouched. `__botEncodeBytes` is
+     * prepended to this file at load time (index.js) because a string script
+     * cannot import; rpc-bytes.js still owns the format.
+     */
+    return JSON.stringify(__botEncodeBytes(await this.#facet(name)[method](...args)));
   }
 
   /**

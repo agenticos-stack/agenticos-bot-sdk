@@ -136,8 +136,16 @@ export async function createLocalSession({ modules, allowedMethods, seed = [], o
       try { input = JSON.parse(body); } catch { return reply({ error: 'invalid_json' }, 400); }
       if (!input || !allowedMethods.includes(input.method) || !Array.isArray(input.args) ||
           Object.keys(input).some(key => !['method', 'args'].includes(key))) return reply({ error: 'method_not_admitted' }, 403);
-      // `encodeBytes` only touches binary values; see rpc-bytes.js for what an
-      // index-keyed Uint8Array costs on this hop.
+      /*
+       * A second pass, deliberately.
+       *
+       * `host.js` encodes before its own `JSON.stringify`, which is where a
+       * Uint8Array actually stops being one, so by here the envelope is
+       * usually already in place and this walk is cheap — an envelope is one
+       * string, not 137,523 properties. It stays because this is the reply
+       * boundary: a value that reached it by some other path still leaves
+       * encoded rather than as an object with a property per byte.
+       */
       try { return reply({ ok: true, value: encodeBytes(await admit(input.method, input.args) ?? null) }); }
       catch { return reply({ ok: false, error: 'local_call_failed' }, 500); }
     },
