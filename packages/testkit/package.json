@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.js",
     "./local-session": "./src/local-session.js",
-    "./local-state": "./src/local-state.js"
+    "./local-state": "./src/local-state.js",
+    "./rpc-bytes": "./src/rpc-bytes.js"
   },
   "files": [
     "src",

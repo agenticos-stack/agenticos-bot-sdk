@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createFacetTestkit } from './index.js';
+import { encodeBytes } from './rpc-bytes.js';
 
 /**
  * The host credential for `/local-rpc`, stable for as long as the state is.
@@ -89,7 +90,9 @@ export async function createLocalSession({ modules, allowedMethods, seed = [], o
       // Serialize browser mutations; disposal waits for admitted calls.
       const pending = queue.then(() => call(input.method, input.args));
       queue = pending.catch(() => {});
-      try { return reply({ ok: true, value: await pending ?? null }); }
+      // `encodeBytes` only touches binary values; see rpc-bytes.js for what an
+      // index-keyed Uint8Array costs on this hop.
+      try { return reply({ ok: true, value: encodeBytes(await pending ?? null) }); }
       catch { return reply({ ok: false, error: 'local_call_failed' }, 500); }
     },
     async dispose() { closed = true; await queue; await rig.dispose(); }
