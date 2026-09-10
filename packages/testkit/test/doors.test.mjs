@@ -108,3 +108,21 @@ test("refuses a malformed doors option rather than loading half a facade", async
     );
   }
 });
+
+test("null means the same as undefined: no doors granted, and the isolate still loads", async () => {
+  // The platform's own answer for "this workspace has granted no doors" is
+  // `null` — `agent.doors()` returns it rather than an empty spec. Rejecting
+  // that meant a workspace with no doors could not start its runtime at all.
+  const modules = { "server.js": source };
+  for (const doors of [undefined, null]) {
+    const rig = await createFacetTestkit({ modules, allowedMethods: ["bindings", "missing"], doors });
+    try {
+      // The isolate loads, and no door key reaches `env` — the same absence an
+      // installed gadget sees when the owner has granted nothing.
+      assert.deepEqual(await rig.call({ workspace: "w", facet: "f", method: "bindings", args: [] }), []);
+      assert.equal(await rig.call({ workspace: "w", facet: "f", method: "missing", args: [] }), "undefined");
+    } finally {
+      await rig.dispose();
+    }
+  }
+});

@@ -23,8 +23,26 @@ export async function acquireLocalState(directory, { existingOnly = false } = {}
       if (existingOnly) throw new Error('No local state exists to reset');
       await mkdir(target, { mode: 0o700 });
       await writeFile(join(target, '.bot-state'), marker, { flag: 'wx', mode: 0o600 });
-    } else if (!info.isDirectory() || info.isSymbolicLink() || await readFile(join(target, '.bot-state'), 'utf8').catch(() => '') !== marker) {
-      throw new Error('Refusing an unowned or symlinked local state directory');
+    } else if (!info.isDirectory() || info.isSymbolicLink()) {
+      throw new Error(`Refusing a local state path that is not a plain directory (a file, or symlinked): ${target}`);
+    } else if (await readFile(join(target, '.bot-state'), 'utf8').catch(() => '') !== marker) {
+      /*
+       * Say which of the two it is, and name the usual cause.
+       *
+       * "Unowned or symlinked" covered three different situations in one
+       * sentence, and the one that actually happens is the dullest: something
+       * else created this directory first. A host that starts an agent before
+       * the isolate — the ordering a door spec requires, because `env` is
+       * shaped at load — will have done `mkdir(stateDirectory, { recursive:
+       * true })` on the way to writing its session file, and `recursive: true`
+       * creates a PARENT too, so moving the agent into a child does not help.
+       * Siblings do.
+       */
+      throw new Error(
+        `Local state directory exists but was not created by the testkit (no .bot-state marker): ${target}. `
+        + 'Something else created it first — if a host shares this path with an agent or another writer, '
+        + 'give each its own sibling directory rather than a shared parent.'
+      );
     }
     return { directory: target, release };
   } catch (error) { await release(); throw error; }
