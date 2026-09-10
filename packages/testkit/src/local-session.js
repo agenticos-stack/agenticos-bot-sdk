@@ -57,8 +57,57 @@ export async function createLocalSession({ modules, allowedMethods, seed = [], o
   const call = (method, args = []) => rig.call({ ...identity, method, args });
   try { for (const entry of seed) await call(entry.method, entry.args); }
   catch (error) { await rig.dispose(); throw error; }
+  /**
+   * A BOUNDED POOL, not a single line.
+   *
+   * Every admitted call used to chain onto one promise — the comment said
+   * "serialize browser mutations", and the code serialised reads too. So a
+   * grid of pictures and the drawer opened over it formed one queue, and a
+   * read of bytes ALREADY IN THE CACHE could sit behind eleven others until
+   * the browser's own 20-second budget ran out. Observed exactly that: a
+   * drawer reporting "this frame did not arrive" for a 161,525 byte preview
+   * that was in SQLite the whole time.
+   *
+   * Nothing is lost by letting them overlap. What orders storage is the
+   * Durable Object's own input gate, inside the isolate, where a write is
+   * ordered against every other operation on that object; this queue never
+   * provided that guarantee, it only hid the need for it behind a slower
+   * pipe. The pool that replaces it exists to bound MEMORY — each in-flight
+   * media call holds its bytes plus a base64 copy of them — not to order
+   * anything.
+   *
+   * Disposal still waits for every call it admitted, which is the part of the
+   * old comment that was load-bearing.
+   */
+  const MAX_CONCURRENT_CALLS = 4;
   let closed = false;
-  let queue = Promise.resolve();
+  let active = 0;
+  const waiting = [];
+  const inFlight = new Set();
+
+  function acquire() {
+    if (active < MAX_CONCURRENT_CALLS) {
+      active += 1;
+      return Promise.resolve();
+    }
+    return new Promise(resolve => waiting.push(resolve));
+  }
+
+  function release() {
+    const next = waiting.shift();
+    // Hand the slot straight over rather than dropping and re-taking it, so a
+    // waiter cannot be overtaken by a call that arrives in between.
+    if (next) next();
+    else active -= 1;
+  }
+
+  async function admit(method, args) {
+    await acquire();
+    const running = call(method, args);
+    inFlight.add(running);
+    try { return await running; }
+    finally { inFlight.delete(running); release(); }
+  }
   return {
     mode: 'local-runtime', identity, token,
     async handle(request) {
@@ -87,14 +136,17 @@ export async function createLocalSession({ modules, allowedMethods, seed = [], o
       try { input = JSON.parse(body); } catch { return reply({ error: 'invalid_json' }, 400); }
       if (!input || !allowedMethods.includes(input.method) || !Array.isArray(input.args) ||
           Object.keys(input).some(key => !['method', 'args'].includes(key))) return reply({ error: 'method_not_admitted' }, 403);
-      // Serialize browser mutations; disposal waits for admitted calls.
-      const pending = queue.then(() => call(input.method, input.args));
-      queue = pending.catch(() => {});
       // `encodeBytes` only touches binary values; see rpc-bytes.js for what an
       // index-keyed Uint8Array costs on this hop.
-      try { return reply({ ok: true, value: encodeBytes(await pending ?? null) }); }
+      try { return reply({ ok: true, value: encodeBytes(await admit(input.method, input.args) ?? null) }); }
       catch { return reply({ ok: false, error: 'local_call_failed' }, 500); }
     },
-    async dispose() { closed = true; await queue; await rig.dispose(); }
+    async dispose() {
+      // `closed` stops new calls at the door, so this drains rather than
+      // chases: whatever was admitted finishes, and nothing joins behind it.
+      closed = true;
+      while (inFlight.size) await Promise.allSettled([...inFlight]);
+      await rig.dispose();
+    }
   };
 }
