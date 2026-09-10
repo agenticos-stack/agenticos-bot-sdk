@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { ENCODE_BYTES_SOURCE } from "./rpc-bytes.js";
 import { createServer } from "node:http";
 import { Miniflare } from "miniflare";
 import { acquireLocalState } from './local-state.js';
@@ -152,7 +153,11 @@ export class Gadget extends UserGadget {
 
   const code = Object.fromEntries(Object.entries(withDoors).sort(([a], [b]) => a.localeCompare(b)));
   const methods = [...new Set(allowedMethods)];
-  const script = await readFile(new URL("./host.js", import.meta.url), "utf8");
+  // `host.js` runs as a string script and cannot import, so the encoder it
+  // needs before its own JSON.stringify is prepended here. One definition,
+  // in rpc-bytes.js; two delivery mechanisms, because two boundaries cannot
+  // import.
+  const script = `${ENCODE_BYTES_SOURCE}\n${await readFile(new URL("./host.js", import.meta.url), "utf8")}`;
   const state = stateDirectory === undefined ? null : await acquireLocalState(stateDirectory);
   const directory = state?.directory ?? await mkdtemp(join(tmpdir(), "agenticos-facet-testkit-"));
   /**

@@ -71,6 +71,38 @@ export function encodeBytes(input) {
 }
 
 /**
+ * The encoder, as source, for the supervisor that runs as a string script.
+ *
+ * `host.js` is handed to miniflare as a `script` with no `scriptPath`, so it
+ * cannot import anything — and it is the one place that must encode, because
+ * its own `JSON.stringify` is where a Uint8Array stops being one. Prepended at
+ * load time (see index.js) rather than duplicated into that file, so the wire
+ * format still has exactly one definition.
+ */
+export const ENCODE_BYTES_SOURCE = `
+const __BOT_BYTES_TAG = ${JSON.stringify(BYTES_TAG)};
+function __botToBase64(bytes) {
+  let binary = "";
+  for (let index = 0; index < bytes.length; index += 0x8000) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(index, index + 0x8000));
+  }
+  return btoa(binary);
+}
+function __botEncodeBytes(input) {
+  if (input instanceof Uint8Array) return { [__BOT_BYTES_TAG]: __botToBase64(input) };
+  if (input && typeof input === "object" && input.type === "Buffer" && Array.isArray(input.data)) {
+    return { [__BOT_BYTES_TAG]: __botToBase64(Uint8Array.from(input.data)) };
+  }
+  if (Array.isArray(input)) return input.map(__botEncodeBytes);
+  if (!input || typeof input !== "object") return input;
+  const prototype = Object.getPrototypeOf(input);
+  if (prototype !== Object.prototype && prototype !== null) return input;
+  const out = {};
+  for (const [key, value] of Object.entries(input)) out[key] = __botEncodeBytes(value);
+  return out;
+}`;
+
+/**
  * The matching decoder, as source, for embedding in a browser bridge.
  *
  * Shipped as a string rather than a module because the bridges that need it

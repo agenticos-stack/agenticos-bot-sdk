@@ -98,3 +98,49 @@ test('a payload carrying no bytes is untouched by the decoder', () => {
 test('the tag is distinctive enough not to collide with gadget data', () => {
   assert.match(BYTES_TAG, /^\$bot_/);
 });
+
+/*
+ * THE TEST THAT WAS MISSING, and the reason this shipped broken.
+ *
+ * Every test above hands `encodeBytes` a Uint8Array it made itself, and they
+ * all passed while the pipeline did not: `host.js` runs as a string script
+ * inside miniflare and its own `JSON.stringify` flattened the array to an
+ * object keyed by index BEFORE any encoder ran. The unit was right and the
+ * integration was wrong, so the wire carried ~8x the bytes and nothing failed.
+ *
+ * This asserts the format of what actually leaves the host.
+ */
+test('bytes leave a real local session as base64, not one key per byte', async () => {
+  const { createLocalSession } = await import('../src/local-session.js');
+  const session = await createLocalSession({
+    origins: ['http://social.localhost:18000'], allowedMethods: ['bytes'],
+    modules: { 'server.js': `import {DurableObject} from 'cloudflare:workers';
+      export class Gadget extends DurableObject {
+        bytes() { return { mime: 'image/jpeg', total: 1000, bytes: new Uint8Array(1000).fill(7) }; }
+      }` }
+  });
+  try {
+    const response = await session.handle(new Request('http://social.localhost:18000/local-rpc', {
+      method: 'POST',
+      headers: {
+        origin: 'http://social.localhost:18000',
+        'content-type': 'application/json',
+        'x-bot-local-session': session.token
+      },
+      body: JSON.stringify({ method: 'bytes', args: [] })
+    }));
+    const text = await response.text();
+    assert.ok(text.includes(BYTES_TAG), 'the reply should carry the envelope');
+    assert.ok(!/"0":7,"1":7/.test(text), 'the reply should not be keyed by index');
+    // 1000 bytes is ~1364 characters of base64 plus the envelope; index-keyed
+    // is ~7900. Anything near the larger number means the encoder ran too late.
+    assert.ok(text.length < 2000, `expected a base64-sized reply, got ${text.length} characters`);
+
+    // And it still decodes to the same bytes on the other side.
+    const make = new Function(`${DECODE_BYTES_SOURCE}\nreturn __botDecodeBytes;`);
+    const value = make()(JSON.parse(text).value);
+    assert.equal(value.bytes.length, 1000);
+    assert.ok(value.bytes instanceof Uint8Array);
+    assert.equal(value.bytes[0], 7);
+  } finally { await session.dispose(); }
+});
