@@ -194,7 +194,31 @@ function sessionsPath(env = process.env) {
   return join(base, "agenticos", "dev-sessions.json");
 }
 
-function sessionKey(apiOrigin, gadgetKey, orgId) {
+/**
+ * Which remembered session belongs to this run.
+ *
+ * The project directory is part of the key, and that is the whole point. This
+ * file is per MACHINE, not per developer or per terminal, and several agents
+ * share one box here. Keyed only by `(apiOrigin, gadgetKey, orgId)`, one
+ * session running `bot-dev dev --fresh` minted a new conversation and silently
+ * repointed everyone else's key — with no error, and a banner reading
+ * "Rejoined the session already open for this gadget" either way. Door grants
+ * are per conversation, so the next grant landed on a room nobody was running.
+ *
+ * Two checkouts of the same gadget are two developments and get two rooms.
+ * That is the intent, not a side effect.
+ */
+function sessionKey(apiOrigin, gadgetKey, orgId, projectDir = process.cwd()) {
+  return [apiOrigin, gadgetKey, orgId ?? "", projectDir].join("|");
+}
+
+/**
+ * The pre-project-directory key.
+ *
+ * Read once, so upgrading the devkit does not orphan a live room that a
+ * developer is mid-session on. Never written.
+ */
+function legacySessionKey(apiOrigin, gadgetKey, orgId) {
   return [apiOrigin, gadgetKey, orgId ?? ""].join("|");
 }
 
@@ -212,20 +236,28 @@ async function readSessions(env = process.env) {
  * Expiry is checked with a minute of headroom: a session that dies mid-run is
  * worse than minting one, and the host validates it again on connect anyway.
  */
-export async function rememberedDevSession({ apiOrigin, gadgetKey, orgId, env = process.env, now = Date.now }) {
-  const entry = (await readSessions(env))[sessionKey(normalizeOrigin(apiOrigin), gadgetKey, orgId)];
+export async function rememberedDevSession({
+  apiOrigin, gadgetKey, orgId, env = process.env, now = Date.now, projectDir = process.cwd()
+}) {
+  const store = await readSessions(env);
+  const origin = normalizeOrigin(apiOrigin);
+  const entry = store[sessionKey(origin, gadgetKey, orgId, projectDir)]
+    ?? store[legacySessionKey(origin, gadgetKey, orgId)];
   if (!entry?.devToken || !entry?.workspaceId) return null;
   return Number(entry.expiresAtMs) - 60_000 > now() ? entry : null;
 }
 
-async function rememberDevSession({ apiOrigin, gadgetKey, orgId, session, env = process.env }) {
+async function rememberDevSession({
+  apiOrigin, gadgetKey, orgId, session, env = process.env, projectDir = process.cwd()
+}) {
   const path = sessionsPath(env);
   const store = await readSessions(env);
-  store[sessionKey(apiOrigin, gadgetKey, orgId)] = {
+  store[sessionKey(apiOrigin, gadgetKey, orgId, projectDir)] = {
     devToken: session.devToken,
     workspaceId: session.workspaceId,
     expiresAtMs: session.expiresAtMs,
-    apiOrigin
+    apiOrigin,
+    projectDir
   };
   await mkdir(dirname(path), { recursive: true, mode: 0o700 });
   await writeFile(path, `${JSON.stringify(store, null, 2)}\n`, { mode: 0o600 });
@@ -233,12 +265,18 @@ async function rememberDevSession({ apiOrigin, gadgetKey, orgId, session, env = 
 }
 
 /** Forget a remembered session, so the next run starts a fresh room. */
-export async function forgetDevSession({ apiOrigin = DEFAULT_API_ORIGIN, gadgetKey, orgId, env = process.env }) {
+export async function forgetDevSession({
+  apiOrigin = DEFAULT_API_ORIGIN, gadgetKey, orgId, env = process.env, projectDir = process.cwd()
+}) {
   const path = sessionsPath(env);
   const store = await readSessions(env);
-  const key = sessionKey(normalizeOrigin(apiOrigin), gadgetKey, orgId);
-  if (!(key in store)) return false;
-  delete store[key];
+  const origin = normalizeOrigin(apiOrigin);
+  // Forget both spellings: whichever one `rememberedDevSession` would have
+  // rejoined is the one that has to go, or `--fresh` quietly rejoins it.
+  const keys = [sessionKey(origin, gadgetKey, orgId, projectDir), legacySessionKey(origin, gadgetKey, orgId)]
+    .filter((candidate) => candidate in store);
+  if (keys.length === 0) return false;
+  for (const key of keys) delete store[key];
   await mkdir(dirname(path), { recursive: true, mode: 0o700 });
   await writeFile(path, `${JSON.stringify(store, null, 2)}\n`, { mode: 0o600 });
   await chmod(path, 0o600);
@@ -261,7 +299,8 @@ export async function startDevSession({
   fresh = false,
   env = process.env,
   now = Date.now,
-  fetcher = fetch
+  fetcher = fetch,
+  projectDir = process.cwd()
 }) {
   const origin = normalizeOrigin(apiOrigin);
   const key = (gadgetKey || "").trim();
@@ -272,7 +311,7 @@ export async function startDevSession({
   // the common case, and every mint leaves a durable conversation behind.
   if (!fresh) {
     const remembered = await rememberedDevSession({
-      apiOrigin: origin, gadgetKey: key, orgId: credential?.orgId, env, now
+      apiOrigin: origin, gadgetKey: key, orgId: credential?.orgId, env, now, projectDir
     });
     if (remembered) return { ...remembered, apiOrigin: origin, reused: true };
   }
@@ -293,7 +332,7 @@ export async function startDevSession({
   }
   const { devToken, workspaceId, expiresAtMs, title: roomTitle } = payload.data;
   const session = { devToken, workspaceId, expiresAtMs, title: roomTitle, apiOrigin: origin };
-  await rememberDevSession({ apiOrigin: origin, gadgetKey: key, orgId: credential?.orgId, session, env });
+  await rememberDevSession({ apiOrigin: origin, gadgetKey: key, orgId: credential?.orgId, session, env, projectDir });
   return { ...session, reused: false };
 }
 
