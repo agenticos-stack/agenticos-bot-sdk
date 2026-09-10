@@ -83,3 +83,68 @@ test('an ephemeral session still gets a random token, since there is nothing to 
   } finally { await a.dispose(); await b.dispose(); }
 });
 
+
+test('calls overlap instead of queueing, and disposal still waits for them', async () => {
+  /*
+   * Every admitted call used to chain onto one promise. The comment said
+   * "serialize browser mutations" and the code serialised reads too, so a
+   * grid of pictures and the drawer opened over it formed a single line — and
+   * a read of bytes already in the cache could sit behind eleven others until
+   * the browser's own 20-second budget ran out. Observed exactly that: a
+   * drawer reporting "this frame did not arrive" for a 161,525 byte preview
+   * that was in SQLite the whole time.
+   */
+  const session = await createLocalSession({
+    origins: ['http://social.localhost:18000'], allowedMethods: ['slow', 'peak'],
+    modules: { 'server.js': `import {DurableObject} from 'cloudflare:workers';
+      export class Gadget extends DurableObject {
+        constructor(ctx, env) { super(ctx, env); this.live = 0; this.high = 0; }
+        async slow() {
+          this.live += 1;
+          if (this.live > this.high) this.high = this.live;
+          await scheduler.wait(40);
+          this.live -= 1;
+          return true;
+        }
+        peak() { return this.high; }
+      }` }
+  });
+  const request = (input) => new Request('http://social.localhost:18000/local-rpc', {
+    method: 'POST', headers: { origin: 'http://social.localhost:18000', 'content-type': 'application/json', 'x-bot-local-session': session.token }, body: JSON.stringify(input)
+  });
+  try {
+    const responses = await Promise.all(Array.from({ length: 8 }, () => session.handle(request({ method: 'slow', args: [] }))));
+    for (const response of responses) assert.equal(response.status, 200);
+
+    /*
+     * The gadget counts how many bodies were live at once, which is the claim
+     * itself. Wall-clock is NOT the probe: a call through this rig costs about
+     * 60ms of its own regardless of what it does, so eight 40ms calls take
+     * roughly the same time whether they overlap or not, and an elapsed-time
+     * assertion would be measuring the harness and flaking on a busy machine.
+     */
+    const peak = (await (await session.handle(request({ method: 'peak', args: [] }))).json()).value;
+    assert.ok(peak > 1, `expected calls to overlap, peak was ${peak}`);
+    assert.ok(peak <= 4, `expected the pool to bound concurrency, peak was ${peak}`);
+  } finally { await session.dispose(); }
+});
+
+test('disposal drains the calls it admitted', async () => {
+  let finished = 0;
+  const session = await createLocalSession({
+    origins: ['http://social.localhost:18000'], allowedMethods: ['slow'],
+    modules: { 'server.js': `import {DurableObject} from 'cloudflare:workers';
+      export class Gadget extends DurableObject {
+        async slow() { await scheduler.wait(60); return true; }
+      }` }
+  });
+  const request = () => new Request('http://social.localhost:18000/local-rpc', {
+    method: 'POST', headers: { origin: 'http://social.localhost:18000', 'content-type': 'application/json', 'x-bot-local-session': session.token }, body: JSON.stringify({ method: 'slow', args: [] })
+  });
+  const calls = Array.from({ length: 3 }, () => session.handle(request()).then((response) => { finished += 1; return response; }));
+  await session.dispose();
+  // `dispose` returned, so every admitted call has already settled — nothing
+  // is still holding the state directory when the next runtime claims it.
+  assert.equal(finished, 3);
+  await Promise.all(calls);
+});
