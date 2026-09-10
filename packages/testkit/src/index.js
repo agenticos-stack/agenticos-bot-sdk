@@ -80,7 +80,17 @@ export async function createFacetTestkit({ modules, allowedMethods, stateDirecto
    * spec the platform would supply and a `call` that forwards to the real
    * door, and the isolate reaches it exactly as it reaches a real one.
    */
-  if (doors !== undefined) {
+  /*
+   * `null` is an ABSENCE, like `undefined`.
+   *
+   * The platform's own answer for "this workspace has granted no doors" is
+   * `null` — `agent.doors()` returns it rather than an empty spec. Rejecting
+   * that as malformed meant a workspace with no doors could not start its
+   * runtime at all, and the caller saw a TypeError about a shape it had not
+   * chosen. Absence is the supported state this testkit exists to model; it
+   * should be spelled either way.
+   */
+  if (doors !== undefined && doors !== null) {
     if (!doors || typeof doors !== "object" || Array.isArray(doors)
       || !doors.spec || typeof doors.spec !== "object" || Array.isArray(doors.spec)
       || typeof doors.call !== "function") {

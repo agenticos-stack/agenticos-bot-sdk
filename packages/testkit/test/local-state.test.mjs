@@ -42,3 +42,26 @@ test('explicit local state survives disposal, locks writers and resets recoverab
     await assert.rejects(acquireLocalState(join(root,'alias')),/symlinked/);
   } finally { await rig?.dispose(); await rm(root,{recursive:true,force:true}); }
 });
+
+test('a directory something else created is refused by name, and the message says why', async () => {
+  /*
+   * The dull cause, and the one that actually happens: a host that starts an
+   * agent before the isolate — the ordering a door spec requires, since `env`
+   * is shaped at load — has already done `mkdir(stateDirectory, { recursive:
+   * true })` on the way to writing its session file. The old message said
+   * "unowned or symlinked", which sent the reader looking for a symlink that
+   * was never there.
+   */
+  const root = await mkdtemp(join(tmpdir(), 'bot-state-foreign-'));
+  const target = join(root, 'runtime');
+  await mkdir(target, { recursive: true, mode: 0o700 });   // created by somebody else, no marker
+  await assert.rejects(acquireLocalState(target), (error) => {
+    assert.match(error.message, /was not created by the testkit/);
+    assert.match(error.message, /\.bot-state marker/);
+    assert.match(error.message, /sibling directory/);      // names the fix
+    assert.ok(error.message.includes(target));             // names the path
+    return true;
+  });
+  await rm(root, { recursive: true, force: true });
+});
+
