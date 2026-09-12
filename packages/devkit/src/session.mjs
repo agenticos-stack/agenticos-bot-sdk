@@ -231,6 +231,25 @@ async function readSessions(env = process.env) {
 }
 
 /**
+ * The organization a gadget-dev token was minted under, read from its own
+ * payload (`payload.o`). A token is `base64url(payload).base64url(hmac)`; the
+ * server verifies the signature on use, so decoding the first segment here is
+ * only reading which organization the API resolved — including the last-active
+ * fallback when no org was pinned, which is the case that mints a room in the
+ * wrong org silently.
+ */
+export function devTokenOrg(devToken) {
+  const encoded = (devToken || "").split(".", 1)[0];
+  if (!encoded) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8"));
+    return typeof payload?.o === "string" ? payload.o : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * A remembered session that is still worth rejoining, or null.
  *
  * Expiry is checked with a minute of headroom: a session that dies mid-run is
@@ -257,7 +276,10 @@ async function rememberDevSession({
     workspaceId: session.workspaceId,
     expiresAtMs: session.expiresAtMs,
     apiOrigin,
-    projectDir
+    projectDir,
+    // The org the server minted under, decoded from the token — which can
+    // differ from the credential's pinned org when none was sent.
+    ...(session.orgId ? { orgId: session.orgId } : {})
   };
   await mkdir(dirname(path), { recursive: true, mode: 0o700 });
   await writeFile(path, `${JSON.stringify(store, null, 2)}\n`, { mode: 0o600 });
@@ -313,7 +335,9 @@ export async function startDevSession({
     const remembered = await rememberedDevSession({
       apiOrigin: origin, gadgetKey: key, orgId: credential?.orgId, env, now, projectDir
     });
-    if (remembered) return { ...remembered, apiOrigin: origin, reused: true };
+    if (remembered) {
+      return { ...remembered, apiOrigin: origin, reused: true, orgId: remembered.orgId ?? devTokenOrg(remembered.devToken) };
+    }
   }
   const response = await fetcher(`${origin}/v2/gadget-dev/sessions`, {
     method: "POST",
@@ -331,7 +355,7 @@ export async function startDevSession({
     throw new Error(`Could not start a development session (${response.status}): ${message}`);
   }
   const { devToken, workspaceId, expiresAtMs, title: roomTitle } = payload.data;
-  const session = { devToken, workspaceId, expiresAtMs, title: roomTitle, apiOrigin: origin };
+  const session = { devToken, workspaceId, expiresAtMs, title: roomTitle, apiOrigin: origin, orgId: devTokenOrg(devToken) };
   await rememberDevSession({ apiOrigin: origin, gadgetKey: key, orgId: credential?.orgId, session, env, projectDir });
   return { ...session, reused: false };
 }
@@ -403,7 +427,7 @@ export function mintBanner(session) {
   const url = studioConversationUrl(session.apiOrigin, session.workspaceId);
   const hours = Math.round(GADGET_DEV_SESSION_TTL_MS / 3_600_000);
   const lines = [
-    `Development session ${session.workspaceId} on ${session.apiOrigin}.`,
+    `Development session ${session.workspaceId} on ${session.apiOrigin}${session.orgId ? ` in organization ${session.orgId}` : ""}.`,
     `Open ${url}`,
     `Valid until ${until} (${hours} hours). When that lapses, stop this process and run \`bot-dev dev\` again — it mints a new session. The host cannot refresh an expired token in place; do not paste a Studio cookie.`
   ];
@@ -411,6 +435,43 @@ export function mintBanner(session) {
     lines.push("Rejoined the session already open for this gadget. Pass --fresh to start a new conversation.");
   }
   return lines.join("\n");
+}
+
+/**
+ * Warnings for when the room this run holds is not in the organization the
+ * gadget's grants live in.
+ *
+ * Door grants are per conversation, and a conversation lives in exactly one
+ * organization — so minting under the wrong org produces a room that looks
+ * identical in the sidebar while every grant made on the earlier room is
+ * absent. Two signals catch it: remembered sessions for this gadget recorded
+ * under another org, and an explicit --org the server resolved differently.
+ */
+export async function devSessionOrgWarnings({
+  apiOrigin = DEFAULT_API_ORIGIN, gadgetKey, credentialOrgId, session, env = process.env
+}) {
+  const mintedOrg = session?.orgId ?? devTokenOrg(session?.devToken);
+  const origin = normalizeOrigin(apiOrigin);
+  const store = await readSessions(env);
+  const prefix = `${origin}|${gadgetKey}|`;
+  const others = new Set();
+  for (const [key, entry] of Object.entries(store)) {
+    if (!key.startsWith(prefix)) continue;
+    const recorded = typeof entry?.orgId === "string" ? entry.orgId : devTokenOrg(entry?.devToken);
+    if (recorded && mintedOrg && recorded !== mintedOrg) others.add(recorded);
+  }
+  const lines = [];
+  if (credentialOrgId && mintedOrg && credentialOrgId !== mintedOrg) {
+    lines.push(
+      `--org ${credentialOrgId} was sent, but the room minted under ${mintedOrg}. The API resolved a different active organization; check the id and re-run.`
+    );
+  }
+  if (others.size) {
+    lines.push(
+      `Other ${gadgetKey} sessions on this machine live under ${[...others].join(", ")}, but this room is under ${mintedOrg ?? "the account's last-active organization"}. Door grants are per conversation — grants made there do not carry over. Re-run with --org <id> to work in that organization.`
+    );
+  }
+  return lines;
 }
 
 async function v2Json({ apiOrigin, credential, path, method, body, fetcher = fetch }) {

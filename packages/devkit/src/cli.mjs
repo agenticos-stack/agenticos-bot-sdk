@@ -4,8 +4,9 @@ import { stdin, stdout } from 'node:process';
 import { spawn } from 'node:child_process';
 import {
   DEFAULT_API_ORIGIN, archiveDevWorkspace, clearCredential, completeSignIn, credentialsPath,
-  defaultGadgetDevTitle, devSessionEnv, fetchSession, forgetDevSession, grantDevDoors,
-  mintBanner, parseGrantKeys, readCredential, requestSignInCode, startDevSession, writeCredential
+  defaultGadgetDevTitle, devSessionEnv, devSessionOrgWarnings, fetchSession, forgetDevSession,
+  grantDevDoors, mintBanner, parseGrantKeys, readCredential, requestSignInCode, startDevSession,
+  writeCredential
 } from './session.mjs';
 
 const PACKAGE_COMMANDS = ['init', 'check', 'pack'];
@@ -106,6 +107,11 @@ async function dev(options, argv) {
   // The workspace id and Studio URL are a room somebody can open; the token
   // is a credential and is not printed.
   console.log(mintBanner(session));
+  for (const warning of await devSessionOrgWarnings({
+    apiOrigin, gadgetKey, credentialOrgId: credential.orgId, session
+  })) {
+    console.warn(`Warning: ${warning}`);
+  }
   if (grantKeys.length) {
     const granted = await grantDevDoors({
       apiOrigin, credential, workspaceId: session.workspaceId, keys: grantKeys

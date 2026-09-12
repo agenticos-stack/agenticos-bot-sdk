@@ -6,13 +6,18 @@ import { dirname, join, resolve } from 'node:path';
 
 import {
   ACTIVE_ORG_HEADER, DEFAULT_API_ORIGIN, archiveDevWorkspace, authHeaders, clearCredential, completeSignIn,
-  credentialsPath, defaultGadgetDevTitle, devSessionEnv, forgetDevSession, grantDevDoors, mintBanner,
-  parseGrantKeys, readCredential, requestSignInCode, startDevSession, studioConversationUrl, writeCredential
+  credentialsPath, defaultGadgetDevTitle, devSessionEnv, devSessionOrgWarnings, devTokenOrg, forgetDevSession,
+  grantDevDoors, mintBanner, parseGrantKeys, readCredential, requestSignInCode, startDevSession,
+  studioConversationUrl, writeCredential
 } from '../src/session.mjs';
 
 async function sandbox() {
   return { XDG_CONFIG_HOME: await mkdtemp(resolve(tmpdir(), 'bot-dev-session-')) };
 }
+
+/** A token in the shape `mintSignedTicket` returns: base64url(payload).signature. */
+const devTokenFor = (orgId) =>
+  `${Buffer.from(JSON.stringify({ o: orgId, e: Date.now() + 3_600_000 })).toString('base64url')}.sig`;
 
 const OK = { ok: true, status: 200, json: async () => ({ success: true }), headers: new Headers() };
 
@@ -418,6 +423,90 @@ test('a grant failure names the door and the status, not a token', async () => {
   assert.match(failure.message, /metered_fetch/);
   assert.match(failure.message, /403/);
   assert.equal(failure.message.includes('sess'), false);
+});
+
+test('reads the minted organization out of the dev token payload', () => {
+  assert.equal(devTokenOrg(devTokenFor('org_5221d927-6615-4e')), 'org_5221d927-6615-4e');
+  assert.equal(devTokenOrg('not-a-token'), null);
+  assert.equal(devTokenOrg(undefined), null);
+});
+
+test('the minted session records which organization the server used', async () => {
+  const env = await sandbox();
+  const credential = { token: 'sess', email: 'a@example.com', orgId: 'org_1', signedInAt: '' };
+  const session = await startDevSession({
+    credential,
+    gadgetKey: 'social_localization',
+    env,
+    fetcher: async () => ({
+      ok: true, status: 201,
+      json: async () => ({
+        data: { devToken: devTokenFor('org_1'), workspaceId: 'chat_1', expiresAtMs: Date.now() + 8 * 3600_000 }
+      })
+    })
+  });
+  assert.equal(session.orgId, 'org_1');
+  assert.match(mintBanner(session), /organization org_1/);
+
+  // The remembered entry keeps the server-resolved org for later comparisons.
+  const raw = JSON.parse(await readFile(join(env.XDG_CONFIG_HOME, 'agenticos', 'dev-sessions.json'), 'utf8'));
+  const entry = Object.values(raw).find((row) => row.workspaceId === 'chat_1');
+  assert.equal(entry.orgId, 'org_1');
+});
+
+test('warns when the minted room is not in the organization the grants live in', async () => {
+  // This morning's failure shape: a session minted --org org_1 lives in the
+  // store, then a run with no --org mints into the account's last-active org.
+  const env = await sandbox();
+  const fetcher = (orgId, room) => async () => ({
+    ok: true, status: 201,
+    json: async () => ({ data: { devToken: devTokenFor(orgId), workspaceId: room, expiresAtMs: Date.now() + 8 * 3600_000 } })
+  });
+  await startDevSession({
+    credential: { token: 'sess', email: 'a@example.com', orgId: 'org_1', signedInAt: '' },
+    gadgetKey: 'social_localization', env, projectDir: '/work/room-a',
+    fetcher: fetcher('org_1', 'chat_org1')
+  });
+  const wrongOrg = await startDevSession({
+    credential: { token: 'sess', email: 'a@example.com', signedInAt: '' },
+    gadgetKey: 'social_localization', env, projectDir: '/work/room-b',
+    fetcher: fetcher('org_2', 'chat_org2')
+  });
+
+  const warnings = await devSessionOrgWarnings({
+    gadgetKey: 'social_localization', session: wrongOrg, env
+  });
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /org_1/);
+  assert.match(warnings[0], /org_2/);
+  assert.match(warnings[0], /--org/);
+});
+
+test('no org warning when everything mints under one organization', async () => {
+  const env = await sandbox();
+  const credential = { token: 'sess', email: 'a@example.com', orgId: 'org_1', signedInAt: '' };
+  const session = await startDevSession({
+    credential, gadgetKey: 'notes', env,
+    fetcher: async () => ({
+      ok: true, status: 201,
+      json: async () => ({ data: { devToken: devTokenFor('org_1'), workspaceId: 'chat_1', expiresAtMs: Date.now() + 8 * 3600_000 } })
+    })
+  });
+  assert.deepEqual(await devSessionOrgWarnings({
+    gadgetKey: 'notes', credentialOrgId: 'org_1', session, env
+  }), []);
+});
+
+test('warns when --org resolves to a different organization than asked', async () => {
+  const warnings = await devSessionOrgWarnings({
+    gadgetKey: 'notes',
+    credentialOrgId: 'org_1',
+    session: { devToken: devTokenFor('org_2'), workspaceId: 'chat_1', orgId: 'org_2' },
+    env: await sandbox()
+  });
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /--org org_1/);
+  assert.match(warnings[0], /org_2/);
 });
 
 test('archives the minted room so it leaves the sidebar', async () => {
