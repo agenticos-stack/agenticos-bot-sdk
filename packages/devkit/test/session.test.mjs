@@ -5,8 +5,9 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 
 import {
-  ACTIVE_ORG_HEADER, DEFAULT_API_ORIGIN, authHeaders, clearCredential, completeSignIn,
-  credentialsPath, devSessionEnv, forgetDevSession, readCredential, requestSignInCode, startDevSession, writeCredential
+  ACTIVE_ORG_HEADER, DEFAULT_API_ORIGIN, archiveDevWorkspace, authHeaders, clearCredential, completeSignIn,
+  credentialsPath, defaultGadgetDevTitle, devSessionEnv, forgetDevSession, grantDevDoors, mintBanner,
+  parseGrantKeys, readCredential, requestSignInCode, startDevSession, studioConversationUrl, writeCredential
 } from '../src/session.mjs';
 
 async function sandbox() {
@@ -348,5 +349,88 @@ test('a session remembered before this change is still rejoined once, then re-ke
   assert.equal(rejoined.workspaceId, 'chat_legacy');
   assert.equal(rejoined.reused, true);
   assert.equal(mints, 0, 'the live room is rejoined, not replaced');
+});
+
+test('social_localization defaults to the product name, not the gadget key', () => {
+  assert.equal(defaultGadgetDevTitle('social_localization'), 'Social Content (dev)');
+  assert.equal(defaultGadgetDevTitle('notes'), undefined);
+});
+
+test('parseGrantKeys splits a comma list and drops empties', () => {
+  assert.deepEqual(parseGrantKeys('metered_fetch'), ['metered_fetch']);
+  assert.deepEqual(parseGrantKeys('metered_fetch, social'), ['metered_fetch', 'social']);
+  assert.deepEqual(parseGrantKeys('  ,metered_fetch,  '), ['metered_fetch']);
+  assert.deepEqual(parseGrantKeys(''), []);
+});
+
+test('prints the Studio conversation URL for the API origin that minted it', () => {
+  assert.equal(
+    studioConversationUrl('https://api.agenticos.hk', 'chat_5647cc60-4991-4d36-8bca-3dd6e2b4370a'),
+    'https://app.agenticos.hk/chat/chat_5647cc60-4991-4d36-8bca-3dd6e2b4370a'
+  );
+  assert.equal(
+    studioConversationUrl('https://staging-api.agenticos.hk', 'chat_1'),
+    'https://staging-app.agenticos.hk/chat/chat_1'
+  );
+});
+
+test('the mint banner names the URL, the TTL, and what to do when it lapses', () => {
+  const banner = mintBanner({
+    workspaceId: 'chat_1',
+    apiOrigin: 'https://api.agenticos.hk',
+    expiresAtMs: Date.parse('2026-09-12T23:12:23.000Z'),
+    reused: false
+  });
+  assert.match(banner, /https:\/\/app\.agenticos\.hk\/chat\/chat_1/);
+  assert.match(banner, /2026-09-12T23:12:23.000Z/);
+  assert.match(banner, /8 hours/);
+  assert.match(banner, /bot-dev dev/);
+  assert.equal(banner.includes('dev-token'), false);
+});
+
+test('grants named doors on the minted room as the signed-in developer', async () => {
+  let seen;
+  await grantDevDoors({
+    credential: { token: 'sess', orgId: 'org_1' },
+    workspaceId: 'chat_1',
+    keys: ['metered_fetch'],
+    fetcher: async (url, init) => {
+      seen = { url, init };
+      return { ok: true, status: 201, json: async () => ({ data: { grant: { requirementKey: 'metered_fetch' } } }) };
+    }
+  });
+  assert.equal(seen.url, `${DEFAULT_API_ORIGIN}/v2/workspaces/chat_1/door-grants`);
+  assert.equal(seen.init.headers.authorization, 'Bearer sess');
+  assert.equal(seen.init.headers[ACTIVE_ORG_HEADER], 'org_1');
+  assert.deepEqual(JSON.parse(seen.init.body), { requirementKey: 'metered_fetch', persistToAgent: false });
+});
+
+test('a grant failure names the door and the status, not a token', async () => {
+  const failure = await grantDevDoors({
+    credential: { token: 'sess' },
+    workspaceId: 'chat_1',
+    keys: ['metered_fetch'],
+    fetcher: async () => ({
+      ok: false, status: 403,
+      json: async () => ({ error: { message: 'not a member' } })
+    })
+  }).catch((error) => error);
+  assert.match(failure.message, /metered_fetch/);
+  assert.match(failure.message, /403/);
+  assert.equal(failure.message.includes('sess'), false);
+});
+
+test('archives the minted room so it leaves the sidebar', async () => {
+  let seen;
+  await archiveDevWorkspace({
+    credential: { token: 'sess', orgId: 'org_1' },
+    workspaceId: 'chat_1',
+    fetcher: async (url, init) => {
+      seen = { url, init };
+      return { ok: true, status: 200, json: async () => ({ data: { archived: true } }) };
+    }
+  });
+  assert.equal(seen.url, `${DEFAULT_API_ORIGIN}/v2/workspaces/chat_1/archive`);
+  assert.deepEqual(JSON.parse(seen.init.body), { archived: true });
 });
 

@@ -350,3 +350,130 @@ export function devSessionEnv(session) {
     AGENTICOS_GADGET_DEV_WORKSPACE_ID: session.workspaceId
   };
 }
+
+/**
+ * How long a minted gadget-dev token lasts. The API's own constant is
+ * `GADGET_DEV_TOKEN_TTL_MS` (8 hours); this copy is only for copy at mint
+ * time, so the advice is said before anything has failed.
+ */
+export const GADGET_DEV_SESSION_TTL_MS = 8 * 60 * 60 * 1000;
+
+/**
+ * Product names that are not the gadget key. The key is an identifier; the
+ * owner's sidebar is for people. Other gadgets pass `--title`.
+ */
+const GADGET_DEV_TITLES = {
+  social_localization: "Social Content (dev)"
+};
+
+/** The conversation title to send when the caller did not pass `--title`. */
+export function defaultGadgetDevTitle(gadgetKey) {
+  return GADGET_DEV_TITLES[gadgetKey] ?? undefined;
+}
+
+/**
+ * Split `--grant metered_fetch,social` into keys. Empty pieces are dropped,
+ * not turned into a request for a door named "".
+ */
+export function parseGrantKeys(value) {
+  if (typeof value !== "string" || !value.trim()) return [];
+  return [...new Set(value.split(/[\s,]+/).map((key) => key.trim()).filter(Boolean))];
+}
+
+const STUDIO_ORIGIN_BY_API = {
+  "https://api.agenticos.hk": "https://app.agenticos.hk",
+  "https://staging-api.agenticos.hk": "https://staging-app.agenticos.hk"
+};
+
+/** The Studio conversation a minted room opens as. Never a credential. */
+export function studioConversationUrl(apiOrigin, workspaceId) {
+  const origin = normalizeOrigin(apiOrigin);
+  const studio = STUDIO_ORIGIN_BY_API[origin]
+    ?? origin.replace("://api.", "://app.").replace("://staging-api.", "://staging-app.");
+  return `${studio}/chat/${encodeURIComponent(workspaceId)}`;
+}
+
+/**
+ * What to print at mint, including the URL and what to do when the eight
+ * hours are up. The 401 path used to be the only place that advice appeared,
+ * which is after the host has already failed.
+ */
+export function mintBanner(session) {
+  const until = new Date(session.expiresAtMs).toISOString();
+  const url = studioConversationUrl(session.apiOrigin, session.workspaceId);
+  const hours = Math.round(GADGET_DEV_SESSION_TTL_MS / 3_600_000);
+  const lines = [
+    `Development session ${session.workspaceId} on ${session.apiOrigin}.`,
+    `Open ${url}`,
+    `Valid until ${until} (${hours} hours). When that lapses, stop this process and run \`bot-dev dev\` again — it mints a new session. The host cannot refresh an expired token in place; do not paste a Studio cookie.`
+  ];
+  if (session.reused) {
+    lines.push("Rejoined the session already open for this gadget. Pass --fresh to start a new conversation.");
+  }
+  return lines.join("\n");
+}
+
+async function v2Json({ apiOrigin, credential, path, method, body, fetcher = fetch }) {
+  const origin = normalizeOrigin(apiOrigin);
+  const response = await fetcher(`${origin}${path}`, {
+    method,
+    headers: { ...authHeaders(credential), "content-type": "application/json", accept: "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+    redirect: "error",
+    signal: AbortSignal.timeout(20000)
+  });
+  const payload = await response.json().catch(() => null);
+  return { response, payload };
+}
+
+/**
+ * Grant named doors on the minted conversation, as the signed-in developer
+ * who owns the room — never a PAT, never a pasted cookie. `persistToAgent` is
+ * false: a throwaway dev room must not become the agent's standing grant.
+ *
+ * The gadget-dev token is not a session on `/v2/workspaces/:id/door-grants`;
+ * only the rpc-ticket route accepts it. The login credential is the member.
+ */
+export async function grantDevDoors({
+  apiOrigin = DEFAULT_API_ORIGIN, credential, workspaceId, keys, fetcher = fetch
+}) {
+  const granted = [];
+  for (const requirementKey of keys) {
+    const { response, payload } = await v2Json({
+      apiOrigin,
+      credential,
+      path: `/v2/workspaces/${encodeURIComponent(workspaceId)}/door-grants`,
+      method: "POST",
+      body: { requirementKey, persistToAgent: false },
+      fetcher
+    });
+    if (!response.ok) {
+      const message = payload?.error?.message || payload?.message || "unknown error";
+      throw new Error(`Could not grant ${requirementKey} (${response.status}): ${message}`);
+    }
+    granted.push(requirementKey);
+  }
+  return granted;
+}
+
+/**
+ * Archive the development conversation so it leaves the owner's sidebar.
+ * Uses the login credential, for the same reason `--grant` does.
+ */
+export async function archiveDevWorkspace({
+  apiOrigin = DEFAULT_API_ORIGIN, credential, workspaceId, fetcher = fetch
+}) {
+  const { response, payload } = await v2Json({
+    apiOrigin,
+    credential,
+    path: `/v2/workspaces/${encodeURIComponent(workspaceId)}/archive`,
+    method: "POST",
+    body: { archived: true },
+    fetcher
+  });
+  if (!response.ok) {
+    const message = payload?.error?.message || payload?.message || "unknown error";
+    throw new Error(`Could not archive ${workspaceId} (${response.status}): ${message}`);
+  }
+  return true;
+}

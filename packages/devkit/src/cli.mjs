@@ -3,8 +3,9 @@ import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import { spawn } from 'node:child_process';
 import {
-  DEFAULT_API_ORIGIN, clearCredential, completeSignIn, credentialsPath, devSessionEnv,
-  fetchSession, readCredential, requestSignInCode, startDevSession, writeCredential
+  DEFAULT_API_ORIGIN, archiveDevWorkspace, clearCredential, completeSignIn, credentialsPath,
+  defaultGadgetDevTitle, devSessionEnv, fetchSession, forgetDevSession, grantDevDoors,
+  mintBanner, parseGrantKeys, readCredential, requestSignInCode, startDevSession, writeCredential
 } from './session.mjs';
 
 const PACKAGE_COMMANDS = ['init', 'check', 'pack'];
@@ -15,7 +16,7 @@ const USAGE = [
   '  bot-dev login [--api <origin>] [--email <address>] [--org <id>]',
   '  bot-dev logout [--api <origin>]',
   '  bot-dev whoami [--api <origin>]',
-  '  bot-dev dev --gadget <key> [--title <text>] [--api <origin>] [--org <id>] [--fresh] -- <command...>',
+  '  bot-dev dev --gadget <key> [--title <text>] [--grant <keys>] [--api <origin>] [--org <id>] [--fresh] -- <command...>',
   '  bot-dev init <new-directory> --template <reviewed-directory> --name <name>',
   '  bot-dev check <directory> --trust-source',
   '  bot-dev pack <directory> --trust-source --output <new.gadget>'
@@ -87,34 +88,58 @@ async function whoami(options) {
 async function dev(options, argv) {
   const separator = argv.indexOf('--');
   if (separator === -1 || separator === argv.length - 1) {
-    throw new Error('Name the host command after `--`, for example: bot-dev dev --gadget social_localization -- pnpm preview');
+    throw new Error('Name the host command after `--`, for example: bot-dev dev --gadget social_localization --org <id> --title "Social Content (dev)" --grant metered_fetch -- pnpm preview');
   }
-  const parsed = parseOptions(argv.slice(0, separator), ['api', 'org', 'gadget', 'title', 'fresh'], ['fresh']);
+  const parsed = parseOptions(argv.slice(0, separator), ['api', 'org', 'gadget', 'title', 'grant', 'fresh'], ['fresh']);
   const [file, ...args] = argv.slice(separator + 1);
   const apiOrigin = parsed.api || DEFAULT_API_ORIGIN;
   const credential = await readCredential({ apiOrigin });
   if (!credential) throw new Error(`Not signed in to ${apiOrigin}. Run \`bot-dev login\` first.`);
   if (parsed.org) credential.orgId = parsed.org;
+  const gadgetKey = parsed.gadget;
+  const title = parsed.title || defaultGadgetDevTitle(gadgetKey);
+  const grantKeys = parseGrantKeys(parsed.grant);
 
   const session = await startDevSession({
-    apiOrigin, credential, gadgetKey: parsed.gadget, title: parsed.title, fresh: Boolean(parsed.fresh)
+    apiOrigin, credential, gadgetKey, title, fresh: Boolean(parsed.fresh)
   });
-  // The workspace id is a room somebody can open and archive; the token is a
-  // credential and is not printed.
-  console.log(`Development session ${session.workspaceId} on ${session.apiOrigin}, valid until ${new Date(session.expiresAtMs).toISOString()}.`);
-  console.log(session.reused
-    ? 'Rejoined the session already open for this gadget. Pass --fresh to start a new conversation.'
-    : 'Archive that conversation to end it early.');
+  // The workspace id and Studio URL are a room somebody can open; the token
+  // is a credential and is not printed.
+  console.log(mintBanner(session));
+  if (grantKeys.length) {
+    const granted = await grantDevDoors({
+      apiOrigin, credential, workspaceId: session.workspaceId, keys: grantKeys
+    });
+    console.log(`Granted ${granted.join(', ')}. Restart the host if it already resolved doors at startup.`);
+  }
 
   const child = spawn(file, args, {
     stdio: 'inherit',
     env: { ...process.env, ...devSessionEnv(session) }
   });
+  let finished = false;
+  const settle = async (code) => {
+    if (finished) return;
+    finished = true;
+    try {
+      await archiveDevWorkspace({ apiOrigin, credential, workspaceId: session.workspaceId });
+      await forgetDevSession({ apiOrigin, gadgetKey, orgId: credential.orgId });
+      console.log(`Archived ${session.workspaceId}.`);
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error));
+    }
+    process.exitCode = code;
+  };
   const code = await new Promise((resolveExit) => {
+    const onSignal = () => {
+      child.kill('SIGTERM');
+    };
+    process.once('SIGINT', onSignal);
+    process.once('SIGTERM', onSignal);
     child.on('error', (error) => { console.error(error.message); resolveExit(1); });
     child.on('close', (status, signal) => resolveExit(signal ? 1 : status ?? 0));
   });
-  process.exitCode = code;
+  await settle(code);
 }
 
 try {
