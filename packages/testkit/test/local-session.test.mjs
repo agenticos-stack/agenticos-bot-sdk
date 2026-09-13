@@ -4,6 +4,29 @@ import { createLocalSession } from '../src/local-session.js';
 import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { encodeBytes, decodeBytes } from '../src/rpc-bytes.js';
+
+test('an explicitly larger local request preserves binary arguments through SQLite', async () => {
+  const origin='http://social.localhost:18000';
+  const session=await createLocalSession({origins:[origin],allowedMethods:['store'],maxRequestBytes:200000,
+    modules:{'server.js':`import {DurableObject} from 'cloudflare:workers';
+      export class Gadget extends DurableObject {
+        store(bytes) {
+          if(!(bytes instanceof Uint8Array))throw new Error('Bytes lost their type');
+          this.ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS media (bytes BLOB)');
+          this.ctx.storage.sql.exec('INSERT INTO media VALUES (?)',bytes);
+          return new Uint8Array(this.ctx.storage.sql.exec('SELECT bytes FROM media').one().bytes);
+        }
+      }`}});
+  const send=bytes=>session.handle(new Request(origin+'/local-rpc',{method:'POST',headers:{origin,'content-type':'application/json','x-bot-local-session':session.token},body:JSON.stringify({method:'store',args:encodeBytes([bytes])})}));
+  try{
+    const bytes=Uint8Array.from({length:100000},(_,i)=>i%251);
+    const result=await send(bytes);
+    assert.equal(result.status,200);
+    assert.deepEqual(decodeBytes((await result.json()).value),bytes);
+    assert.equal((await send(new Uint8Array(200000))).status,413);
+  }finally{await session.dispose();}
+});
 
 test('local session uses SQLite, host identity and denies unadmitted calls', async () => {
   const session = await createLocalSession({
