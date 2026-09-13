@@ -16,6 +16,13 @@ Requests require an exact Origin, JSON content type, and `x-bot-local-session`.
 This is a developer capability token, not platform login or tenant authorization.
 Seed methods are unavailable to browsers unless separately admitted.
 
+The default request limit is 64 KiB. Media hosts can select `maxRequestBytes`
+explicitly, up to 4 MiB, and must apply the same bound at their outer HTTP hop.
+Encode binary arguments with `encodeBytes` from `src/rpc-bytes.js` before JSON
+serialization; the local session restores them before invoking the gadget.
+`ENCODE_BYTES_SOURCE` and `DECODE_BYTES_SOURCE` provide the same codec for
+sandboxed inline scripts. The response uses that envelope too.
+
 Storage is temporary by default. Pass an explicit absolute `stateDirectory`
 to retain SQLite across shutdown/startup. The parent directory must exist.
 Only SDK-marked directories can be reused; symlinked/unowned directories are
