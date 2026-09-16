@@ -7,7 +7,7 @@ or remote account used; owned runtime and controlled HTTP listener stopped.
 Command from SDK root:
 
 ```sh
-NOTES_GADGET_ARCHIVE=/home/ubuntu/Project/agenticos-stack/worktrees/gadget-notes-foundation/dist/notes.gadget node --test --test-concurrency=1 packages/testkit/test/facets.test.mjs packages/testkit/test/notes.acceptance.mjs
+NOTES_GADGET_ARCHIVE=/home/ubuntu/Project/agenticos-stack/gadget-notes-foundation/dist/notes.gadget node --test --test-concurrency=1 packages/testkit/test/facets.test.mjs packages/testkit/test/notes.acceptance.mjs
 ```
 
 Result: **3 tests passed, 0 failed, 0 skipped** (two generic test cases and one
