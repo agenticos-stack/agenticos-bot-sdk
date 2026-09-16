@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createFacetTestkit } from './index.js';
-import { encodeBytes } from './rpc-bytes.js';
+import { encodeBytes, decodeBytes } from './rpc-bytes.js';
 
 /**
  * The host credential for `/local-rpc`, stable for as long as the state is.
@@ -39,7 +39,9 @@ async function sessionToken(stateDirectory) {
  * createFacetTestkit. Without it the gadget is loaded with an empty env.
  * Identity and method admission are host-owned, not fields supplied by callers.
  * No outbound network/bindings are supplied by the underlying facet testkit. */
-export async function createLocalSession({ modules, allowedMethods, seed = [], origins, stateDirectory, doors }) {
+export async function createLocalSession({ modules, allowedMethods, seed = [], origins, stateDirectory, doors, maxRequestBytes = 65536 }) {
+  if (!Number.isSafeInteger(maxRequestBytes) || maxRequestBytes < 1 || maxRequestBytes > 4 * 1024 * 1024)
+    throw new TypeError('maxRequestBytes must be between 1 and 4194304');
   if (!Array.isArray(origins) || !origins.length || origins.some(value => {
     try {
       const url = new URL(value);
@@ -126,7 +128,7 @@ export async function createLocalSession({ modules, allowedMethods, seed = [], o
             const { done, value } = await reader.read();
             if (done) break;
             length += value.byteLength;
-            if (length > 65536) { await reader.cancel(); return reply({ error: 'request_too_large' }, 413); }
+            if (length > maxRequestBytes) { await reader.cancel(); return reply({ error: 'request_too_large' }, 413); }
             chunks.push(value);
           }
         } finally { reader.releaseLock(); }
@@ -146,7 +148,7 @@ export async function createLocalSession({ modules, allowedMethods, seed = [], o
        * boundary: a value that reached it by some other path still leaves
        * encoded rather than as an object with a property per byte.
        */
-      try { return reply({ ok: true, value: encodeBytes(await admit(input.method, input.args) ?? null) }); }
+      try { return reply({ ok: true, value: encodeBytes(await admit(input.method, decodeBytes(input.args)) ?? null) }); }
       catch { return reply({ ok: false, error: 'local_call_failed' }, 500); }
     },
     async dispose() {

@@ -111,11 +111,10 @@ function __botEncodeBytes(input) {
  * file: an encoder and a decoder maintained in separate repositories is a
  * format with no owner.
  */
-export const DECODE_BYTES_SOURCE = `
 function __botDecodeBytes(value) {
   if (!value || typeof value !== 'object') return value;
   if (Array.isArray(value)) return value.map(__botDecodeBytes);
-  var encoded = value[${JSON.stringify(BYTES_TAG)}];
+  var encoded = value.$bot_bytes_b64;
   if (typeof encoded === 'string') {
     var binary = atob(encoded);
     var bytes = new Uint8Array(binary.length);
@@ -125,4 +124,7 @@ function __botDecodeBytes(value) {
   var out = {};
   for (var key in value) if (Object.prototype.hasOwnProperty.call(value, key)) out[key] = __botDecodeBytes(value[key]);
   return out;
-}`;
+}
+
+export { __botDecodeBytes as decodeBytes };
+export const DECODE_BYTES_SOURCE = __botDecodeBytes.toString();
