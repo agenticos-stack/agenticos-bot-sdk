@@ -1,6 +1,6 @@
 {
   "name": "@agenticos-dev/bot-shell",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": false,
   "type": "module",
   "files": [
@@ -9,6 +9,7 @@
     "showcase.html",
     "GadgetSplitView.svelte",
     "GadgetSplitView.svelte.d.ts",
+    "client",
     "README.md",
     "LICENSE",
     "NOTICE"
@@ -17,6 +18,12 @@
     "./tokens.css": "./tokens.css",
     "./components.css": "./components.css",
     "./showcase.html": "./showcase.html",
+    "./client/rpc.js": "./client/rpc.js",
+    "./client/dom.js": "./client/dom.js",
+    "./client/collection.js": "./client/collection.js",
+    "./client/drawer.js": "./client/drawer.js",
+    "./client/steps.js": "./client/steps.js",
+    "./client/toast.js": "./client/toast.js",
     "./GadgetSplitView.svelte": {
       "types": "./GadgetSplitView.svelte.d.ts",
       "svelte": "./GadgetSplitView.svelte",

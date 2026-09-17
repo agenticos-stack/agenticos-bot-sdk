@@ -60,3 +60,53 @@ This package currently provides tokens and the split shell, not a complete
 button/form/dialog library. Prefer native accessible controls until shared
 components have tested keyboard, focus, disabled and responsive behavior.
 Do not build bespoke modal focus management into each bot.
+
+# Canvas client modules (0.2.2)
+
+`client/` holds the browser-side half of the shell — the small modules a
+gadget canvas bundles into its self-contained `client.js`. Each is imported
+per module (`@agenticos-dev/bot-shell/client/dom.js`); there is deliberately
+no barrel, so a canvas pays bytes only for the modules it uses.
+
+- `client/rpc.js` — `createRpc(gadget, methods)` wraps the sandbox stub with
+  the bot's own method list; `chunkBytes`/`assembleChunkedBlobUrl` reassemble
+  chunked facet responses and count what arrived against what was promised.
+- `client/dom.js` — both render styles a canvas uses: `esc()`/`iconMarkup()`/
+  `preserveRender()` and the string chrome (`button`, `field`, `notice`,
+  `skeleton`) for HTML-template canvases, and `el()`/`createEl()`/`svgEl()`/
+  `icon()`/`replace()` for node-building ones. `createEl(classMap)` lets a bot
+  keep legacy class names as an adapter onto the `bot-*` contract.
+- `client/collection.js` — the "watch, notify, act" collection's state layer:
+  plain-data reducers for items/filter/search/source chips/selection/notices,
+  plus `reviewTabs()`, which projects a definition's `review_state` options
+  into filter tabs (open states fold into Drafts) so a new option adds a tab
+  with no canvas edit.
+- `client/drawer.js` — the dialog/drawer shell: `showDialog`/`closeDialog`/
+  `dialogShell` for string canvases, `confirmDrawerChoice` (a promise-based
+  choice prompt that survives a stale `close` event) for node canvases.
+- `client/steps.js` — `goToStep`/`setMobilePane` guards plus the step rail in
+  both render styles (`stepperMarkup` / `stepperEl`).
+- `client/toast.js` — `announce()` one-line toasts and `createToaster()` card
+  toasts with an action and a dismiss control.
+
+Nothing here fetches, authenticates, or decides policy — the facet owns that;
+these modules draw and transmit. `showcase.html` renders each component and
+its states when served over http (file:// blocks module imports; the static
+contract markup remains as the reference).
+
+## The three component systems
+
+Three systems share one vocabulary by contract, not by code reuse:
+
+1. **Studio `@agenticos/ui`** — Svelte components for the host app. The
+   design source of truth for names and geometry.
+2. **The design board** (`design-plans/ui-components-board`) — the static
+   reference the review loop approves.
+3. **This package** — `bot-*` primitives + the `client/` modules, for
+   framework-neutral canvases inside a sandboxed `srcdoc` iframe that cannot
+   import the host's Svelte components and cannot fetch sibling modules.
+
+A gadget canvas reuses the *contracts* (names, tokens, states, the review_state
+projection), never the host's implementations. When a canvas needs a component
+that exists only in Studio, the gap is reported back rather than patched
+around — that is how this layer stays a library instead of a third fork.

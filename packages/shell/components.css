@@ -56,3 +56,31 @@ dialog.bot-drawer { box-sizing: border-box; width: min(640px, 100vw); max-width:
 .bot-drawer-body { min-height: 0; overflow: auto; overscroll-behavior: contain; padding: var(--bot-space-6); overflow-wrap: anywhere; }
 @media (pointer: coarse) { :root { --bot-control-height: 44px; } .bot-input.bot-input { font-size: 16px; } }
 @media (max-width: 600px) { dialog.bot-drawer { width: 100%; } .bot-drawer-body { padding: var(--bot-space-4); } }
+
+/* Steps rail — the stepper's node-side contract (client/steps.js). A dot
+ * carries the index, a check once the step is done; aria-current marks the
+ * active step and data-done lets completed steps finish. */
+.bot-steps { display: flex; align-items: center; flex-wrap: wrap; }
+.bot-steps-step { display: inline-flex; align-items: center; gap: var(--bot-space-2); padding: var(--bot-space-1) var(--bot-space-2); border: 0; background: none; color: var(--color-ink-soft); font: 500 var(--bot-text-body)/1.5 var(--font-sans); cursor: pointer; }
+.bot-steps-dot { display: inline-grid; place-items: center; width: 22px; height: 22px; border: 1px solid var(--color-line-strong); border-radius: 50%; font-size: var(--bot-text-meta); }
+.bot-steps-dot svg { width: 12px; height: 12px; }
+.bot-steps-step[aria-current="step"] { color: var(--color-ink); font-weight: 600; }
+.bot-steps-step[aria-current="step"] .bot-steps-dot { border-color: var(--color-ink); background: var(--color-ink); color: var(--color-panel); }
+.bot-steps-step[data-done="true"] .bot-steps-dot { border-color: var(--color-ink); }
+.bot-steps-line { flex: 0 0 28px; height: 1px; background: var(--color-line); }
+
+/* Toast — a fixed live region plus the dismissible card createToaster renders
+ * (client/toast.js). Long enough to read a refusal; the dismiss control is the
+ * way to clear it sooner. */
+.bot-toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 60; max-width: min(520px, calc(100vw - 32px)); pointer-events: none; }
+.bot-toast-card { pointer-events: auto; position: relative; display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--bot-space-2); padding: var(--bot-space-3); padding-inline-end: calc(var(--bot-space-6) + var(--bot-space-2)); background: var(--color-panel); border: 1px solid var(--color-line-strong); border-radius: var(--bot-radius-card); box-shadow: 0 10px 28px rgba(0,0,0,.16); }
+.bot-toast-card strong { flex: 1 1 100%; font-size: var(--bot-text-body); }
+.bot-toast-card > span { flex: 1 1 100%; font-size: var(--bot-text-meta); color: var(--color-ink-soft); }
+.bot-toast-action { min-height: 32px; padding: 0 var(--bot-space-3); font-size: var(--bot-text-meta); cursor: pointer; background: var(--color-act); border: 1px solid var(--color-act-hover); color: var(--color-act-ink); border-radius: var(--bot-radius-control); }
+.bot-toast-dismiss { position: absolute; top: 6px; right: 8px; width: 28px; height: 28px; cursor: pointer; border: 0; background: transparent; color: var(--color-ink-soft); font-size: 17px; line-height: 1; }
+
+/* Skeleton — a geometry-holding placeholder: the loading view keeps the
+ * layout of the loaded one, so data arriving never moves the canvas. */
+.bot-skeleton { border-radius: var(--bot-radius-control); background: linear-gradient(90deg, var(--color-panel-subtle) 25%, var(--color-line) 50%, var(--color-panel-subtle) 75%); background-size: 200% 100%; animation: bot-skeleton 1.4s linear infinite; }
+@keyframes bot-skeleton { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .bot-skeleton { animation: none; } }

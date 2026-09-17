@@ -14,6 +14,16 @@ engine, credentials or direct production connections belong here. Typed
 capability metadata never grants authority. Fixtures must be explicitly marked
 and cannot silently fall back to live transport. Tests must stop owned processes.
 
+Three component systems share one vocabulary by contract, not by code reuse:
+Studio `@agenticos/ui` (Svelte, the design source of truth), the design board
+under design-plans (the approved static reference), and `packages/shell`
+(bot-* CSS primitives + framework-neutral `client/` modules for sandboxed
+gadget canvases). A canvas reuses names, tokens and state contracts — never
+the host's implementations, which it cannot load inside its `srcdoc` iframe.
+When a canvas needs a component that exists only in Studio, report the gap
+back rather than patching around it. `packages/shell/README.md` carries the
+canonical description.
+
 Concurrent ownership (2026-09-08, runtime/release batch): parent owns root
 files/docs/scripts/release workflow/integration and packages/sdk metadata.
 do_testkit owns packages/testkit. sdk_public_types owns packages/devkit,

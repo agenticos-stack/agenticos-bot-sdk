@@ -1,10 +1,73 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bot UI components</title>
 <link rel="stylesheet" href="./tokens.css"><link rel="stylesheet" href="./components.css">
-<style>body{margin:0;padding:24px;background:var(--color-paper);color:var(--color-ink);font:14px/1.7 var(--font-sans)}main{max-width:900px;margin:auto;display:grid;gap:24px}h1,h2,p{margin:0 0 12px}section{padding:24px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}</style></head>
+<style>body{margin:0;padding:24px;background:var(--color-paper);color:var(--color-ink);font:14px/1.7 var(--font-sans)}main{max-width:900px;margin:auto;display:grid;gap:24px}h1,h2,p{margin:0 0 12px}section{padding:24px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}.live{border-top:1px dashed var(--color-line);margin-top:16px;padding-top:16px}.icons{display:flex;flex-wrap:wrap;gap:12px}.icons svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}dialog.demo{margin:auto}</style></head>
 <body><main><header><h1>Bot UI</h1><p>Shared native controls · English / <span lang="zh-HK">繁體中文</span></p><span class="bot-badge">Development reference</span></header>
 <section class="bot-card"><h2>Actions</h2><div class="bot-toolbar"><button class="bot-button" data-variant="primary">Save draft · 儲存草稿</button><button class="bot-button">Cancel · 取消</button><button class="bot-button" disabled>Unavailable</button><button class="bot-button" disabled aria-busy="true">Saving…</button></div></section>
 <section class="bot-card"><h2>Fields</h2><div class="grid"><div class="bot-field"><label for="caption">Caption · 文案</label><textarea class="bot-input" id="caption">Review the source before publishing.</textarea></div><div class="bot-field"><label for="language">Language · 語言</label><select class="bot-input" id="language"><option>English</option><option>繁體中文（香港）</option></select><label for="invalid">Validation error</label><input class="bot-input" id="invalid" aria-invalid="true" aria-describedby="error"><p id="error">Enter a title before continuing.</p></div></div></section>
 <section class="bot-card"><h2>Empty state</h2><div class="bot-empty">No content yet. Add a source to get started.</div></section>
-<section class="bot-card"><h2>Drawer contract</h2><p>Use a native dialog with bot-drawer, containing bot-drawer-sheet and head/body/actions sections. Call showModal() inside the canvas document, not the parent. The application owns labels, confirmation of unsaved changes, and focus restoration.</p></section>
-</main></body></html>
+<section class="bot-card"><h2>Drawer contract</h2><p>Use a native dialog with bot-drawer, containing bot-drawer-sheet and head/body/actions sections. Call showModal() inside the canvas document, not the parent. The application owns labels, confirmation of unsaved changes, and focus restoration.</p><p id="drawer-live">The live <code>confirmDrawerChoice</code> demo loads when this page is served over http.</p></section>
+
+<section class="bot-card"><h2>Client modules</h2>
+<p><code>client/rpc.js</code> · <code>client/dom.js</code> · <code>client/collection.js</code> · <code>client/drawer.js</code> · <code>client/steps.js</code> · <code>client/toast.js</code> — imported per module; no barrel. The demos below render through the real modules when this page is served (file:// blocks module imports, in which case the static contract markup stays visible).</p>
+<div class="live"><h2>Steps rail — <code>steps.js</code></h2><div id="demo-steps"><nav class="bot-steps"><button type="button" class="bot-steps-step" data-done="true"><span class="bot-steps-dot">✓</span><span>Audience · 受眾</span></button><span class="bot-steps-line" aria-hidden="true"></span><button type="button" class="bot-steps-step" aria-current="step"><span class="bot-steps-dot">2</span><span>Content · 內容</span></button><span class="bot-steps-line" aria-hidden="true"></span><button type="button" class="bot-steps-step"><span class="bot-steps-dot">3</span><span>Review &amp; send · 檢閱及發送</span></button></nav></div></div>
+<div class="live"><h2>Collection tabs — <code>collection.js reviewTabs</code></h2><p>Tabs derive from a definition's <code>review_state</code> options; the open (mutable) options fold into Drafts.</p><div id="demo-tabs" class="bot-toolbar"></div></div>
+<div class="live"><h2>Toast — <code>toast.js</code></h2><div class="bot-toolbar"><button class="bot-button" id="demo-announce">announce() one-liner</button><button class="bot-button" id="demo-toast">createToaster() card</button></div></div>
+<div class="live"><h2>Skeleton — <code>dom.js skeleton</code></h2><div id="demo-skeleton" class="grid"></div></div>
+<div class="live"><h2>Icons — <code>dom.js icon</code></h2><div id="demo-icons" class="icons"></div></div>
+</section>
+</main>
+<div id="toast-region" class="bot-toast" role="status" aria-live="polite"></div>
+<dialog id="demo-dialog" class="bot-drawer"></dialog>
+<script type="module">
+try {
+  const { el, replace, icon, ICON_PATHS, skeletonEl } = await import('./client/dom.js');
+  const { stepperEl } = await import('./client/steps.js');
+  const { reviewTabs } = await import('./client/collection.js');
+  const { createToaster, announce } = await import('./client/toast.js');
+  const { confirmDrawerChoice } = await import('./client/drawer.js');
+
+  replace(document.getElementById('demo-steps'), [
+    stepperEl(['Audience · 受眾', 'Content · 內容', 'Review & send · 檢閱及發送'], 1, { onStep: () => {} })
+  ]);
+
+  // review_state options as a definition declares them — the same projection
+  // a canvas's filter tabs run.
+  const tabs = reviewTabs({
+    options: ['drafting', 'in_review', 'approved', 'scheduled', 'sent'],
+    open: ['drafting', 'in_review'],
+    vocab: {
+      approved: { label: ['Approved', '已核准'] },
+      scheduled: { label: ['Scheduled', '已排程'] },
+      sent: { label: ['Sent', '已發送'] }
+    }
+  });
+  replace(document.getElementById('demo-tabs'), tabs.map((tab, i) =>
+    el('button', { type: 'button', class: 'bot-button', 'aria-selected': i === 0 ? 'true' : undefined }, `${tab.label[0]} · ${tab.label[1]}`)));
+
+  const toastRegion = document.getElementById('toast-region');
+  const toaster = createToaster(toastRegion, { dismissLabel: 'Dismiss · 關閉' });
+  document.getElementById('demo-announce').onclick = () =>
+    announce('Saved · 已儲存', { target: toastRegion, duration: 2500 });
+  document.getElementById('demo-toast').onclick = () =>
+    toaster.show({ title: 'Publish refused · 發佈被拒', body: 'The destination declined — review the claim.', action: { label: 'Review · 檢閱', run: () => {} } });
+
+  const dlg = document.getElementById('demo-dialog');
+  document.getElementById('drawer-live').replaceChildren(el('button', {
+    type: 'button', class: 'bot-button',
+    onclick: () => confirmDrawerChoice(dlg, { title: 'Unsaved changes · 有未儲存變更', body: ['Leave without saving?', '不儲存就離開？'], choices: [{ value: 'stay', label: 'Stay · 留下' }, { value: 'leave', label: 'Leave · 離開', primary: true }] })
+  }, 'Open confirmDrawerChoice'));
+
+  replace(document.getElementById('demo-skeleton'), [
+    el('div', null, [skeletonEl(42, { width: '60%' }), el('div', { style: 'height:8px' }), skeletonEl(36), el('div', { style: 'height:8px' }), skeletonEl(54)]),
+    el('div', null, [skeletonEl(120)])
+  ]);
+
+  const icons = document.getElementById('demo-icons');
+  for (const name of Object.keys(ICON_PATHS)) icons.appendChild(icon(name));
+} catch (error) {
+  // file:// or an old browser — the static contract markup above stays visible.
+  console.warn('live demos need http:', error);
+}
+</script>
+</body></html>
