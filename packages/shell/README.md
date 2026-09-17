@@ -92,10 +92,12 @@ no barrel, so a canvas pays bytes only for the modules it uses.
 - `client/drawer.js` — the dialog/drawer shell: `showDialog`/`closeDialog`/
   `dialogShell` for string canvases, `confirmDrawerChoice` (a promise-based
   choice prompt that survives a stale `close` event) for node canvases.
+  `classes` re-skins the emitted chrome for a canvas whose stylesheet predates
+  the `bot-drawer-*` contract.
 - `client/steps.js` — `goToStep`/`setMobilePane` guards plus the step rail in
   both render styles (`stepperMarkup` / `stepperEl`).
 - `client/toast.js` — `announce()` one-line toasts and `createToaster()` card
-  toasts with an action and a dismiss control.
+  toasts with an action and a dismiss control; `classes` re-skins the card.
 
 Nothing here fetches, authenticates, or decides policy — the facet owns that;
 these modules draw and transmit. `showcase.html` renders each component and

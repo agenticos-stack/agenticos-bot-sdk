@@ -75,13 +75,18 @@ export function svgEl(tag, attrs, children) {
  * twin of `iconMarkup` in dom.js, built from the same ICON_PATHS table.
  * Decorative by construction: every icon button carries its own `aria-label`.
  */
-export function icon(name) {
-  const d = ICON_PATHS[name];
-  if (!d) throw new Error(`Unknown icon: ${name}`);
+export function iconEl(d) {
   return svgEl("svg", {
     viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": 1.8,
     "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true", focusable: "false"
   }, [svgEl("path", { d })]);
+}
+
+/** Name lookup for canvases resolving icons from data (`icon("close")`). */
+export function icon(name) {
+  const d = ICON_PATHS[name];
+  if (!d) throw new Error(`Unknown icon: ${name}`);
+  return iconEl(d);
 }
 
 /** Clears a container and appends fresh children in one step. */

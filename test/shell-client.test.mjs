@@ -173,6 +173,37 @@ test("confirmDrawerChoice resolves the choice and closes the dialog", async () =
   assert.equal(dlg.open, false);
 });
 
+test("confirmDrawerChoice re-skins chrome via classes and marks choices with data-choice", async () => {
+  const dlg = new StubNode("dialog");
+  dlg.open = false;
+  dlg.showModal = () => { dlg.open = true; };
+  dlg.close = () => { dlg.open = false; };
+  const decision = confirmDrawerChoice(dlg, {
+    title: "Unsaved", body: "Discard?",
+    choices: [{ value: "keep", label: "Keep" }, { value: "discard", label: "Discard", primary: true }],
+    classes: {
+      sheet: "sl-preview-sheet bot-drawer-sheet",
+      head: "sl-preview-head bot-drawer-head",
+      body: "sl-preview-scroll bot-drawer-body",
+      actions: "sl-preview-actions bot-drawer-actions",
+      button: "sl-secondary bot-button",
+      primary: "sl-primary bot-button"
+    }
+  });
+  const sheet = dlg.children[0];
+  assert.equal(sheet.className, "sl-preview-sheet bot-drawer-sheet");
+  assert.equal(sheet.children[1].className, "sl-preview-scroll bot-drawer-body");
+  const buttons = sheet.children[2].children;
+  // `data-choice` is an attribute, not only a dataset key — shims and CSS
+  // selectors read attributes.
+  assert.equal(buttons[0].attributes["data-choice"], "keep");
+  assert.equal(buttons[1].attributes["data-choice"], "discard");
+  assert.equal(buttons[1].className, "sl-primary bot-button");
+  assert.equal(buttons[1].dataset.variant, "primary");
+  buttons[0].dispatch("click");
+  assert.equal(await decision, "keep");
+});
+
 test("confirmDrawerChoice ignores a close that left the dialog open, resolves 'cancel' on a real one", async () => {
   const dlg = new StubNode("dialog");
   dlg.open = false;

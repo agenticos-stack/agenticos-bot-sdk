@@ -56,8 +56,22 @@ const pendingChoices = new WeakMap();
  * When one prompt resolves and the caller opens the next on the same dialog
  * straight away, the first prompt's close arrives while the dialog is open
  * again — only a close that left the dialog closed is a real dismissal.
+ *
+ * `classes` re-skins the chrome for a canvas whose stylesheet predates the
+ * `bot-drawer-*` contract: `{ sheet, head, body, actions, button, primary }`.
+ * `primary` is the full class list for `choice.primary` buttons; the
+ * `data-variant="primary"` marker is still emitted on them.
  */
-export function confirmDrawerChoice(dialog, { title, body, choices }) {
+export function confirmDrawerChoice(dialog, { title, body, choices, classes = {} }) {
+  const cls = {
+    sheet: "bot-drawer-sheet",
+    head: "bot-drawer-head",
+    body: "bot-drawer-body",
+    actions: "bot-drawer-actions",
+    button: "bot-button",
+    primary: "bot-button",
+    ...classes
+  };
   const pending = pendingChoices.get(dialog);
   if (pending) return pending;
   let settle;
@@ -76,11 +90,11 @@ export function confirmDrawerChoice(dialog, { title, body, choices }) {
   const onCancel = (event) => { event.preventDefault?.(); finish("cancel"); };
   const onClose = () => { if (dialog.open) return; finish("cancel"); };
   replace(dialog, [
-    el("div", { class: "bot-drawer-sheet" }, [
-      el("header", { class: "bot-drawer-head" }, [el("strong", null, title)]),
-      el("div", { class: "bot-drawer-body" }, (Array.isArray(body) ? body : [body]).filter(Boolean).map((line) => el("p", null, line))),
-      el("footer", { class: "bot-drawer-actions" }, choices.map((choice) =>
-        el("button", { type: "button", class: "bot-button", dataset: { choice: choice.value, ...(choice.primary ? { variant: "primary" } : {}) }, onclick: () => finish(choice.value) }, choice.label)))
+    el("div", { class: cls.sheet }, [
+      el("header", { class: cls.head }, [el("strong", null, title)]),
+      el("div", { class: cls.body }, (Array.isArray(body) ? body : [body]).filter(Boolean).map((line) => el("p", null, line))),
+      el("footer", { class: cls.actions }, choices.map((choice) =>
+        el("button", { type: "button", class: choice.primary ? cls.primary : cls.button, "data-choice": choice.value, dataset: choice.primary ? { variant: "primary" } : undefined, onclick: () => finish(choice.value) }, choice.label)))
     ])
   ]);
   dialog.addEventListener("cancel", onCancel);

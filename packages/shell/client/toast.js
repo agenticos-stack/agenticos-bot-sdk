@@ -27,10 +27,13 @@ export function announce(message, { target = "#toast", duration = 3500 } = {}) {
  * A card toaster bound to a host region. `show({ title, body, action })`
  * renders the card; `action` is `{ label, run }`; `dismissLabel` is the
  * localized aria-label for the dismiss control. `clear()` empties the region.
+ * `classes` re-skins the card for a canvas whose stylesheet predates the
+ * `bot-toast-*` contract: `{ card, action, dismiss }`.
  * Long enough to read a refusal, and it can be dismissed sooner — a notice
  * that vanishes before it is read is the same as no notice.
  */
-export function createToaster(region, { duration = 12000, dismissLabel = "Dismiss", onLog } = {}) {
+export function createToaster(region, { duration = 12000, dismissLabel = "Dismiss", onLog, classes = {} } = {}) {
+  const cls = { card: "bot-toast-card", action: "bot-toast-action", dismiss: "bot-toast-dismiss", ...classes };
   let timer = null;
   function clear() {
     if (timer) clearTimeout(timer);
@@ -41,14 +44,14 @@ export function createToaster(region, { duration = 12000, dismissLabel = "Dismis
     onLog?.(title, body);
     if (timer) clearTimeout(timer);
     replace(region, [
-      el("div", { class: "bot-toast-card" }, [
+      el("div", { class: cls.card }, [
         el("strong", null, title),
         body ? el("span", null, body) : null,
         action
-          ? el("button", { type: "button", class: "bot-toast-action", onclick: () => { clear(); action.run(); } }, action.label)
+          ? el("button", { type: "button", class: cls.action, onclick: () => { clear(); action.run(); } }, action.label)
           : null,
         el("button", {
-          type: "button", class: "bot-toast-dismiss",
+          type: "button", class: cls.dismiss,
           "aria-label": dismissLabel, onclick: () => clear()
         }, "×")
       ])
