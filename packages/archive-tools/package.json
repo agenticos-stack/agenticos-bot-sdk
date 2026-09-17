@@ -1,6 +1,6 @@
 {
   "name": "@agenticos-dev/bot-archive-tools",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": false,
   "type": "module",
   "types": "./src/index.d.ts",
