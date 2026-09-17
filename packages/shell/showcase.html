@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bot UI components</title>
-<link rel="stylesheet" href="./tokens.css"><link rel="stylesheet" href="./components.css">
+<link rel="stylesheet" href="./tokens.css"><link rel="stylesheet" href="./components.css"><link rel="stylesheet" href="./client/chrome.css">
 <style>body{margin:0;padding:24px;background:var(--color-paper);color:var(--color-ink);font:14px/1.7 var(--font-sans)}main{max-width:900px;margin:auto;display:grid;gap:24px}h1,h2,p{margin:0 0 12px}section{padding:24px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}.live{border-top:1px dashed var(--color-line);margin-top:16px;padding-top:16px}.icons{display:flex;flex-wrap:wrap;gap:12px}.icons svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}dialog.demo{margin:auto}</style></head>
 <body><main><header><h1>Bot UI</h1><p>Shared native controls · English / <span lang="zh-HK">繁體中文</span></p><span class="bot-badge">Development reference</span></header>
 <section class="bot-card"><h2>Actions</h2><div class="bot-toolbar"><button class="bot-button" data-variant="primary">Save draft · 儲存草稿</button><button class="bot-button">Cancel · 取消</button><button class="bot-button" disabled>Unavailable</button><button class="bot-button" disabled aria-busy="true">Saving…</button></div></section>
@@ -21,7 +21,8 @@
 <dialog id="demo-dialog" class="bot-drawer"></dialog>
 <script type="module">
 try {
-  const { el, replace, icon, ICON_PATHS, skeletonEl } = await import('./client/dom.js');
+  const { el, replace, icon, skeletonEl } = await import('./client/elements.js');
+  const { ICON_PATHS } = await import('./client/dom.js');
   const { stepperEl } = await import('./client/steps.js');
   const { reviewTabs } = await import('./client/collection.js');
   const { createToaster, announce } = await import('./client/toast.js');

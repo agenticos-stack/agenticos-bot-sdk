@@ -71,11 +71,19 @@ no barrel, so a canvas pays bytes only for the modules it uses.
 - `client/rpc.js` — `createRpc(gadget, methods)` wraps the sandbox stub with
   the bot's own method list; `chunkBytes`/`assembleChunkedBlobUrl` reassemble
   chunked facet responses and count what arrived against what was promised.
-- `client/dom.js` — both render styles a canvas uses: `esc()`/`iconMarkup()`/
-  `preserveRender()` and the string chrome (`button`, `field`, `notice`,
-  `skeleton`) for HTML-template canvases, and `el()`/`createEl()`/`svgEl()`/
-  `icon()`/`replace()` for node-building ones. `createEl(classMap)` lets a bot
-  keep legacy class names as an adapter onto the `bot-*` contract.
+- `client/dom.js` — the string-template half: `esc()`/`iconSvg()`/
+  `preserveRender()` plus the string chrome (`button`, `field`, `notice`,
+  `skeleton`) and relative-time labels. The icon vocabulary ships as `ICON_*`
+  path constants — `iconSvg(ICON_CHECK)` bundles only the icons a canvas
+  draws — with `ICON_PATHS`/`iconMarkup(name)` kept for canvases resolving
+  icons dynamically.
+- `client/elements.js` — the node-building half: `el()`/`createEl()`/`svgEl()`/
+  `icon()`/`replace()`/`skeletonEl()`. `createEl(classMap, decorate)` lets a
+  bot keep legacy class names as an adapter onto the `bot-*` contract. The
+  split is deliberate: a string canvas never bundles node code and vice versa.
+- `client/chrome.css` — the stylesheet the `bot-*` chrome renders against
+  (steps rail, toast card, node skeleton). A canvas imports it only when it
+  adopts the modules that emit those classes.
 - `client/collection.js` — the "watch, notify, act" collection's state layer:
   plain-data reducers for items/filter/search/source chips/selection/notices,
   plus `reviewTabs()`, which projects a definition's `review_state` options

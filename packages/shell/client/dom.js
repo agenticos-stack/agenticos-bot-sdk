@@ -1,75 +1,19 @@
-// bot-shell client — tiny DOM helpers shared by every canvas view module.
+// bot-shell client — the string-template half of the DOM layer.
 //
-// Two render styles live here side by side because both are first-class in
-// the canvases that consume them:
+// HTML-string templating is one of the two render styles canvases use; this
+// module is its escaping boundary. Every untrusted value goes through `esc()`
+// at the render site — no markup reaches a document unescaped. The node
+// builders (`el`, `svgEl`, `replace`, `icon`) live in `elements.js` — a
+// string-template canvas never pays for them.
 //
-// - HTML-string templating (esc() + markup builders) — the escaping boundary
-//   is `esc()`; every untrusted value goes through it at the render site.
-// - DOM-node building (el()/text()/svgEl()) — untrusted content goes through
-//   `text()` or a caller-set `textContent`; nothing parses a string as HTML.
-//
-// A bot picks one style per view; the helpers below never mix them.
+// The chrome helpers (`button`, `field`, `notice`, `skeleton`) emit the
+// canvas's own class contract — `.btn`, `.field`, `.notice`, `.skeleton` are
+// styled by the consuming stylesheet, not by components.css.
 
 export const $ = (q, root = document) => root.querySelector(q);
 
 export const esc = (v) =>
   String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-
-/**
- * Creates an element, applies attrs/props, and appends children (strings
- * become text nodes). `classMap` — supplied via `createEl` — lets a bot keep
- * its legacy class names as a domain-to-design-system adapter while the
- * shared `bot-*` classes do the styling.
- */
-export function createEl(classMap = {}) {
-  return function el(tag, attrs, children) {
-    const node = document.createElement(tag);
-    if (attrs) {
-      for (const [key, value] of Object.entries(attrs)) {
-        if (value === null || value === undefined || value === false) continue;
-        if (key === "class") node.className = value;
-        else if (key === "value" && tag === "textarea") node.value = String(value);
-        else if (key === "dataset") Object.assign(node.dataset, value);
-        else if (key.startsWith("on") && typeof value === "function") node.addEventListener(key.slice(2), value);
-        else if (value === true) node.setAttribute(key, "");
-        else node.setAttribute(key, String(value));
-      }
-    }
-    for (const name of [...node.classList]) {
-      if (classMap[name]) node.classList.add(classMap[name]);
-    }
-    for (const child of Array.isArray(children) ? children : children != null ? [children] : []) {
-      if (child == null) continue;
-      node.appendChild(child instanceof Node ? child : document.createTextNode(String(child)));
-    }
-    return node;
-  };
-}
-
-/** A bare `el` with no class adapter — the default for a fresh canvas. */
-export const el = createEl();
-
-/** A bare text node — for call sites that want to skip the `el()` ceremony. */
-export function text(value) {
-  return document.createTextNode(String(value ?? ""));
-}
-
-const SVG_NS = "http://www.w3.org/2000/svg";
-
-/** `el()` for the SVG namespace, which `createElement` cannot produce. */
-export function svgEl(tag, attrs, children) {
-  const node = document.createElementNS(SVG_NS, tag);
-  if (attrs) {
-    for (const [key, value] of Object.entries(attrs)) {
-      if (value === null || value === undefined || value === false) continue;
-      node.setAttribute(key, value === true ? "" : String(value));
-    }
-  }
-  for (const child of Array.isArray(children) ? children : children != null ? [children] : []) {
-    if (child instanceof Node) node.appendChild(child);
-  }
-  return node;
-}
 
 /**
  * Studio's icon vocabulary, drawn with Studio's geometry.
@@ -83,88 +27,109 @@ export function svgEl(tag, attrs, children) {
  * a gadget's chrome cannot drift away from the app that hosts it. Add a name
  * here only when Studio already has it.
  *
- * Each entry is an array of `d` path strings.
+ * Each entry is one `d` attribute — a path element can carry multiple
+ * subpaths (`M…Z M…Z`), so multi-stroke icons join their parts with a space.
+ *
+ * Every icon is also its own `ICON_*` export: a canvas that passes the path
+ * constants around (`iconSvg(ICON_CHECK)`, a button's `ic:` option) bundles
+ * only the icons it draws. `ICON_PATHS` stays the name→path table for
+ * canvases resolving icons dynamically — importing it (or `iconMarkup`)
+ * keeps the whole vocabulary.
  */
+export const ICON_MAIL = "M3 5h18v14H3z M3 6l9 7 9-7";
+export const ICON_GRID = "M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z";
+export const ICON_USERS = "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M16 3a4 4 0 0 1 0 8 M22 21v-2a4 4 0 0 0-3-3.87 M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0";
+export const ICON_CHART = "M4 20V10 M10 20V4 M16 20v-7 M22 20V7";
+export const ICON_FILE = "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M8 13h8 M8 17h6";
+export const ICON_CALENDAR = "M4 5h16v16H4z M16 3v4 M8 3v4 M4 11h16";
+export const ICON_SETTINGS = "M12 8.2a3.8 3.8 0 1 1 0 7.6 3.8 3.8 0 0 1 0-7.6Z M19.4 13.5a7.7 7.7 0 0 0 .05-3l2-1.55-2-3.45-2.45 1a8 8 0 0 0-2.6-1.5L14 2.5h-4l-.4 2.5A8 8 0 0 0 7 6.5l-2.45-1-2 3.45 2 1.55a7.7 7.7 0 0 0 .05 3l-2.05 1.55 2 3.45L7 17.5a8 8 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a8 8 0 0 0 2.6-1.5l2.45 1 2-3.45-2.05-1.55Z";
+export const ICON_CHEV = "M9 5l7 7-7 7";
+export const ICON_DOWN = "M6 9l6 6 6-6";
+export const ICON_BACK = "M19 12H5 M11 6l-6 6 6 6";
+export const ICON_PLUS = "M12 5v14 M5 12h14";
+export const ICON_SEARCH = "M21 21l-5-5 M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0";
+export const ICON_CHECK = "M4 12l5 5L20 6";
+export const ICON_CLOSE = "M6 6l12 12 M18 6L6 18";
+export const ICON_CLOCK = "M12 8v5l3 2 M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0";
+export const ICON_SHIELD = "M12 3l8 4v6c0 5-8 9-8 9s-8-4-8-9V7z M8 12l3 3 5-6";
+export const ICON_INFO = "M12 11v6 M12 7h.01 M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0";
+export const ICON_SPARK = "M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3z";
+export const ICON_MONITOR = "M3 3h18v14H3z M8 21h8 M12 17v4";
+export const ICON_PHONE = "M7 2h10v20H7z M11 18h2";
+export const ICON_TEXT = "M4 5h16 M4 10h16 M4 15h16 M4 20h10";
+export const ICON_HEADING = "M5 4v16 M19 4v16 M5 12h14";
+export const ICON_IMAGE = "M3 3h18v18H3z M3 17l6-6 4 4 3-3 5 5 M8 7h.01";
+export const ICON_LINK = "M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-2 2 M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l2-2";
+export const ICON_UP = "M6 15l6-6 6 6";
+export const ICON_TRASH = "M3 6h18 M8 6V3h8v3 M5 6l1 15h12l1-15 M10 10v7 M14 10v7";
+export const ICON_REFRESH = "M20 6v5h-5 M4 18v-5h5 M18.2 10.5A6.6 6.6 0 0 0 6.6 7.2L4 9.7 M5.8 13.5a6.6 6.6 0 0 0 11.6 3.3L20 14.3";
+export const ICON_SEND = "M22 2L9 15 M22 2l-7 20-6-7-7-6z";
+export const ICON_UNDO = "M9 5L4 10l5 5 M4 10h10a6 6 0 0 1 0 12";
+export const ICON_PLUG = "M9 2v6 M15 2v6 M7 8h10v4a5 5 0 0 1-10 0z M12 17v5";
+export const ICON_BELL = "M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9 M13.7 21a2 2 0 0 1-3.4 0";
+export const ICON_DOOR = "M15 3h4v18h-4 M10 17l5-5-5-5 M15 12H3";
+export const ICON_CHAT = "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z";
+export const ICON_EYE = "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8 M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6";
+export const ICON_CODE = "M8 6l-6 6 6 6 M16 6l6 6-6 6";
+export const ICON_DOTS = "M5 12h.01 M12 12h.01 M19 12h.01";
+export const ICON_COPY = "M11 9h9a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2 M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1";
+export const ICON_ALERT = "M12 8v5 M12 17h.01 M10.3 3.8L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.8a2 2 0 0 0-3.4 0z";
+
 export const ICON_PATHS = {
-  mail: ["M3 5h18v14H3z", "M3 6l9 7 9-7"],
-  grid: ["M3 3h7v7H3z", "M14 3h7v7H3z", "M3 14h7v7H3z", "M14 14h7v7H3z"],
-  users: ["M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", "M16 3a4 4 0 0 1 0 8", "M22 21v-2a4 4 0 0 0-3-3.87", "M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0"],
-  chart: ["M4 20V10", "M10 20V4", "M16 20v-7", "M22 20V7"],
-  file: ["M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z", "M14 2v6h6", "M8 13h8", "M8 17h6"],
-  calendar: ["M4 5h16v16H4z", "M16 3v4", "M8 3v4", "M4 11h16"],
-  settings: [
-    "M12 8.2a3.8 3.8 0 1 1 0 7.6 3.8 3.8 0 0 1 0-7.6Z",
-    "M19.4 13.5a7.7 7.7 0 0 0 .05-3l2-1.55-2-3.45-2.45 1a8 8 0 0 0-2.6-1.5L14 2.5h-4l-.4 2.5A8 8 0 0 0 7 6.5l-2.45-1-2 3.45 2 1.55a7.7 7.7 0 0 0 .05 3l-2.05 1.55 2 3.45L7 17.5a8 8 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a8 8 0 0 0 2.6-1.5l2.45 1 2-3.45-2.05-1.55Z"
-  ],
-  chev: ["M9 5l7 7-7 7"],
-  down: ["M6 9l6 6 6-6"],
-  back: ["M19 12H5", "M11 6l-6 6 6 6"],
-  plus: ["M12 5v14", "M5 12h14"],
-  search: ["M21 21l-5-5", "M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0"],
-  check: ["M4 12l5 5L20 6"],
-  close: ["M6 6l12 12", "M18 6L6 18"],
-  clock: ["M12 8v5l3 2", "M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0"],
-  shield: ["M12 3l8 4v6c0 5-8 9-8 9s-8-4-8-9V7z", "M8 12l3 3 5-6"],
-  info: ["M12 11v6", "M12 7h.01", "M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0"],
-  spark: ["M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"],
-  monitor: ["M3 3h18v14H3z", "M8 21h8", "M12 17v4"],
-  phone: ["M7 2h10v20H7z", "M11 18h2"],
-  "text-lines": ["M4 5h16", "M4 10h16", "M4 15h16", "M4 20h10"],
-  heading: ["M5 4v16", "M19 4v16", "M5 12h14"],
-  image: ["M3 3h18v18H3z", "M3 17l6-6 4 4 3-3 5 5", "M8 7h.01"],
-  link: ["M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-2 2", "M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l2-2"],
-  up: ["M6 15l6-6 6 6"],
-  trash: ["M3 6h18", "M8 6V3h8v3", "M5 6l1 15h12l1-15", "M10 10v7", "M14 10v7"],
-  refresh: [
-    "M20 6v5h-5",
-    "M4 18v-5h5",
-    "M18.2 10.5A6.6 6.6 0 0 0 6.6 7.2L4 9.7",
-    "M5.8 13.5a6.6 6.6 0 0 0 11.6 3.3L20 14.3"
-  ],
-  send: ["M22 2L9 15", "M22 2l-7 20-6-7-7-6z"],
-  undo: ["M9 5L4 10l5 5", "M4 10h10a6 6 0 0 1 0 12"],
-  plug: ["M9 2v6", "M15 2v6", "M7 8h10v4a5 5 0 0 1-10 0z", "M12 17v5"],
-  bell: ["M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9", "M13.7 21a2 2 0 0 1-3.4 0"],
-  door: ["M15 3h4v18h-4", "M10 17l5-5-5-5", "M15 12H3"],
-  chat: ["M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"],
-  eye: ["M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8", "M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6"],
-  code: ["M8 6l-6 6 6 6", "M16 6l6 6-6 6"],
-  dots: ["M5 12h.01", "M12 12h.01", "M19 12h.01"],
-  copy: ["M11 9h9a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2", "M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"],
-  alert: ["M12 8v5", "M12 17h.01", "M10.3 3.8L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.8a2 2 0 0 0-3.4 0z"]
+  mail: ICON_MAIL,
+  grid: ICON_GRID,
+  users: ICON_USERS,
+  chart: ICON_CHART,
+  file: ICON_FILE,
+  calendar: ICON_CALENDAR,
+  settings: ICON_SETTINGS,
+  chev: ICON_CHEV,
+  down: ICON_DOWN,
+  back: ICON_BACK,
+  plus: ICON_PLUS,
+  search: ICON_SEARCH,
+  check: ICON_CHECK,
+  close: ICON_CLOSE,
+  clock: ICON_CLOCK,
+  shield: ICON_SHIELD,
+  info: ICON_INFO,
+  spark: ICON_SPARK,
+  monitor: ICON_MONITOR,
+  phone: ICON_PHONE,
+  text: ICON_TEXT,
+  heading: ICON_HEADING,
+  image: ICON_IMAGE,
+  link: ICON_LINK,
+  up: ICON_UP,
+  trash: ICON_TRASH,
+  refresh: ICON_REFRESH,
+  send: ICON_SEND,
+  undo: ICON_UNDO,
+  plug: ICON_PLUG,
+  bell: ICON_BELL,
+  door: ICON_DOOR,
+  chat: ICON_CHAT,
+  eye: ICON_EYE,
+  code: ICON_CODE,
+  dots: ICON_DOTS,
+  copy: ICON_COPY,
+  alert: ICON_ALERT
 };
 
 /**
- * One named icon as an SVG element, sized and coloured by CSS.
- *
- * Built as nodes rather than injected as markup, so an icon stays subject to
- * the same no-innerHTML rule as everything else in this module. Decorative by
- * construction: every icon button carries its own `aria-label`.
- */
-export function icon(name) {
-  const paths = ICON_PATHS[name];
-  if (!paths) throw new Error(`Unknown icon: ${name}`);
-  return svgEl("svg", {
-    viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": 1.8,
-    "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true", focusable: "false"
-  }, paths.map((d) => svgEl("path", { d })));
-}
-
-/**
- * The same icon as an HTML string for string-template canvases. The host
+ * One named icon as an HTML string for string-template canvases. The host
  * canvas's stylesheet carries the stroke/fill rules (`svg { stroke:
  * currentColor; fill: none; … }`), so the markup stays bare.
  */
-export function iconMarkup(name, cls = "") {
-  const paths = ICON_PATHS[name];
-  if (!paths) throw new Error(`Unknown icon: ${name}`);
-  return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${paths.map((d) => `<path d="${d}"/>`).join("")}</svg>`;
+export function iconSvg(d, cls = "") {
+  return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
 }
 
-/** Clears a container and appends fresh children in one step. */
-export function replace(container, children) {
-  container.replaceChildren(...(Array.isArray(children) ? children.filter(Boolean) : [children].filter(Boolean)));
-  return container;
+/** Name lookup for canvases resolving icons from data (`icon(name)`). */
+export function iconMarkup(name, cls = "") {
+  const d = ICON_PATHS[name];
+  if (!d) throw new Error(`Unknown icon: ${name}`);
+  return iconSvg(d, cls);
 }
 
 const RELATIVE_UNITS = [
@@ -243,7 +208,7 @@ export function button(action, label, { kind = "", ic = "", key = action, value 
   const text = stableLabel
     ? `<span class="busy-label"><span class="measure" aria-hidden="true">${stableLabel}</span><span>${label}</span></span>`
     : `<span>${label}</span>`;
-  return `<button type="button" class="btn ${kind}" data-action="${action}" data-key="${esc(key)}"${value !== "" ? ` data-value="${esc(value)}"` : ""} ${disabled ? 'aria-disabled="true"' : ""} ${extra}>${ic ? iconMarkup(ic) : ""}${text}</button>`;
+  return `<button type="button" class="btn ${kind}" data-action="${action}" data-key="${esc(key)}"${value !== "" ? ` data-value="${esc(value)}"` : ""} ${disabled ? 'aria-disabled="true"' : ""} ${extra}>${ic ? iconSvg(ic) : ""}${text}</button>`;
 }
 
 export function field(key, label, value, { type = "text", hint = "", placeholder = "", disabled = false, required = false } = {}) {
@@ -251,20 +216,15 @@ export function field(key, label, value, { type = "text", hint = "", placeholder
 }
 
 export function notice(title, body = "", kind = "", action = "") {
-  return `<div class="notice ${kind}" role="${kind === "error" ? "alert" : "status"}">${iconMarkup(kind === "success" ? "check" : "info")}<div class="grow"><strong>${title}</strong>${body ? `<p>${body}</p>` : ""}</div>${action ? `<div class="notice-actions">${action}</div>` : ""}</div>`;
+  return `<div class="notice ${kind}" role="${kind === "error" ? "alert" : "status"}">${iconSvg(kind === "success" ? ICON_CHECK : ICON_INFO)}<div class="grow"><strong>${title}</strong>${body ? `<p>${body}</p>` : ""}</div>${action ? `<div class="notice-actions">${action}</div>` : ""}</div>`;
 }
 
 /**
  * A geometry-holding loading placeholder — the skeleton. `height` keeps the
  * layout of the view it stands in for, so data arriving never moves the
- * canvas. `bot-skeleton` is styled by components.css; `skeleton` names the
- * canvas-level hook some stylesheets already draw.
+ * canvas. Emits the canvas-level `skeleton` hook the consuming stylesheet
+ * draws (`bot-skeleton` is the node-side components.css contract).
  */
 export function skeleton(height, { width = "100%", cls = "" } = {}) {
-  return `<div class="${`skeleton bot-skeleton ${cls}`.trim()}" style="height:${Number(height) || 16}px;width:${esc(width)}" aria-hidden="true"></div>`;
-}
-
-/** The node-building twin of `skeleton`. */
-export function skeletonEl(height, { width = "100%", cls = "" } = {}) {
-  return el("div", { class: `bot-skeleton ${cls}`.trim(), style: `height:${Number(height) || 16}px;width:${width}`, "aria-hidden": "true" });
+  return `<div class="${`skeleton ${cls}`.trim()}" style="height:${Number(height) || 16}px;width:${esc(width)}" aria-hidden="true"></div>`;
 }

@@ -7,7 +7,8 @@
 // carries the index or a check once done, `aria-current="step"` marks the
 // active step, and `data-done` lets the stylesheet finish completed steps.
 
-import { el, esc, icon, iconMarkup } from "./dom.js";
+import { el, icon } from "./elements.js";
+import { esc, iconSvg, ICON_CHECK } from "./dom.js";
 
 /** `steps` names the order the flow admits — the caller's ids, not this module's. */
 export function goToStep(state, step, steps) {
@@ -29,7 +30,7 @@ export function stepperMarkup(steps, active, { action = "step", keyPrefix = "ste
     .map((step, i) => {
       const done = i < active;
       return `<button type="button" class="step" data-action="${esc(action)}" data-value="${i}" data-key="${esc(keyPrefix)}-${i}"${i === active ? ' aria-current="step"' : ""} data-done="${done}">
-        <span class="step-dot">${done ? iconMarkup("check") : i + 1}</span><span>${esc(step)}</span>
+        <span class="step-dot">${done ? iconSvg(ICON_CHECK) : i + 1}</span><span>${esc(step)}</span>
       </button>${i < steps.length - 1 ? '<span class="step-line" aria-hidden="true"></span>' : ""}`;
     })
     .join("")}</nav>`;

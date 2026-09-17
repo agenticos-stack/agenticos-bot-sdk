@@ -7,15 +7,15 @@
 //   a dismiss control (the `.bot-toast-card` contract), for canvases whose
 //   notices carry a way forward.
 
-import { el, replace } from "./dom.js";
+import { el, replace } from "./elements.js";
 
 /**
  * Shows `message` in the toast host for `duration` ms. The host is any region
  * the canvas designated (`role="status"`/`aria-live` so screen readers hear
  * it); the `.show` class is the stylesheet's show/hide hook.
  */
-export function announce(message, { target = "#toast", duration = 3500, root = document } = {}) {
-  const host = typeof target === "string" ? root.querySelector(target) : target;
+export function announce(message, { target = "#toast", duration = 3500 } = {}) {
+  const host = typeof target === "string" ? document.querySelector(target) : target;
   if (!host) return;
   host.textContent = message;
   host.classList.add("show");

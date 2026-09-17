@@ -5,7 +5,8 @@ import { installDomStub, StubNode } from "./shell-client-dom-stub.mjs";
 const documentStub = installDomStub();
 
 const { createRpc, chunkBytes, assembleChunkedBlobUrl } = await import("../packages/shell/client/rpc.js");
-const { esc, el, icon, iconMarkup, replace, relativeLabel, relativeTimeFrom, createEl, skeleton, skeletonEl } = await import("../packages/shell/client/dom.js");
+const { esc, iconMarkup, relativeLabel, relativeTimeFrom, skeleton } = await import("../packages/shell/client/dom.js");
+const { el, icon, replace, createEl, skeletonEl } = await import("../packages/shell/client/elements.js");
 const { announce, createToaster } = await import("../packages/shell/client/toast.js");
 const { goToStep, setMobilePane, stepperMarkup, stepperEl } = await import("../packages/shell/client/steps.js");
 const { confirmDrawerChoice, dialogShell, showDialog } = await import("../packages/shell/client/drawer.js");
@@ -63,7 +64,7 @@ test("esc escapes every markup metacharacter", () => {
 test("iconMarkup and skeleton produce the canvas-contract markup", () => {
   assert.match(iconMarkup("check"), /^<svg[^>]*viewBox="0 0 24 24"/);
   assert.throws(() => iconMarkup("not-an-icon"), /Unknown icon/);
-  assert.match(skeleton(54), /class="skeleton bot-skeleton[^"]*"[^>]*height:54px/);
+  assert.match(skeleton(54), /class="skeleton[^"]*"[^>]*height:54px/);
 });
 
 test("relativeLabel speaks both locales the canvases ship", () => {

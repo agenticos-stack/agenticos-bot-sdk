@@ -6,15 +6,17 @@
 // the canvas its top layer, backdrop and Escape semantics for free — no
 // overlay machinery is re-implemented here.
 
-import { el, replace, esc, iconMarkup } from "./dom.js";
+import { el, replace } from "./elements.js";
+import { esc, iconSvg, ICON_CLOSE } from "./dom.js";
 
 /**
- * Mounts markup into the shared dialog. `drawer` swaps the centered panel for
- * the right-docked sheet geometry; the first focusable (or `[data-autofocus]`)
- * control takes focus.
+ * Mounts markup into the shared dialog — `#dialog` is the canvas contract;
+ * the canvas creates the element once and re-mounts it. `drawer` swaps the
+ * centered panel for the right-docked sheet geometry (the `dialog.bot-drawer`
+ * contract); the first focusable (or `[data-autofocus]`) control takes focus.
  */
-export function showDialog(html, { target = "#dialog", drawer = false, root = document } = {}) {
-  const dlg = typeof target === "string" ? root.querySelector(target) : target;
+export function showDialog(html, { drawer = false } = {}) {
+  const dlg = document.querySelector("#dialog");
   if (!dlg) return;
   dlg.className = drawer ? "bot-drawer" : "";
   dlg.innerHTML = html;
@@ -23,8 +25,8 @@ export function showDialog(html, { target = "#dialog", drawer = false, root = do
   first?.focus();
 }
 
-export function closeDialog({ target = "#dialog", root = document } = {}) {
-  const dlg = typeof target === "string" ? root.querySelector(target) : target;
+export function closeDialog() {
+  const dlg = document.querySelector("#dialog");
   if (dlg?.open) dlg.close();
   if (dlg) dlg.innerHTML = "";
 }
@@ -32,12 +34,13 @@ export function closeDialog({ target = "#dialog", root = document } = {}) {
 /**
  * The string-template shell: head (title + optional description + dismiss),
  * scrollable body, optional footer actions. `closeLabel` is the localized
- * aria-label for the dismiss button.
+ * aria-label for the dismiss button — the canvas supplies it; the package
+ * carries no copy.
  */
-export function dialogShell({ title, desc = "", body, foot = "", drawer = false, closeLabel = "Close", target, root } = {}) {
+export function dialogShell(title, desc, body, foot, { drawer = false, closeLabel = "Close" } = {}) {
   showDialog(
-    `<div class="dialog-head"><div class="grow"><h2 id="dialog-title">${title}</h2>${desc ? `<p>${desc}</p>` : ""}</div><button class="btn quiet icon" data-action="close-dialog" data-key="dlg-close" aria-label="${esc(closeLabel)}">${iconMarkup("close")}</button></div><div class="dialog-body">${body}</div>${foot ? `<div class="dialog-footer">${foot}</div>` : ""}`,
-    { target, drawer, root }
+    `<div class="dialog-head"><div class="grow"><h2 id="dialog-title">${title}</h2>${desc ? `<p>${desc}</p>` : ""}</div><button class="btn quiet icon" data-action="close-dialog" data-key="dlg-close" aria-label="${esc(closeLabel)}">${iconSvg(ICON_CLOSE)}</button></div><div class="dialog-body">${body}</div>${foot ? `<div class="dialog-footer">${foot}</div>` : ""}`,
+    { drawer }
   );
 }
 
