@@ -5,8 +5,10 @@ import { resolve, basename } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { RELEASE_PACKAGES } from './release-readiness.mjs';
 
-/** How long a freshly published version may take to become readable. */
-export const PROPAGATION_TIMEOUT_MS = 300000;
+/** How long a freshly published version may take to become readable. 0.2.2's
+ * run watched one package take over five minutes — ten minutes reads a slow
+ * registry as slow instead of inventing a missing package. */
+export const PROPAGATION_TIMEOUT_MS = 600000;
 export const PROPAGATION_POLL_MS = 5000;
 
 export function validateCandidate(candidate, sha) {
@@ -79,8 +81,21 @@ async function main() {
     if (createHash('sha256').update(data).digest('hex') !== artifact.sha256) throw new Error('Candidate hash mismatch');
     bytes.set(artifact.name, data);
     // Preflight the entire release before the first registry write. Never
-    // silently skip an occupied version or reinterpret a 404 as authorization.
-    if (await metadata(artifact)) throw new Error(`Version already exists: ${artifact.name}@${artifact.version}`);
+    // silently skip an occupied version or reinterpret a 404 as authorization —
+    // BUT a version occupied by THESE EXACT BYTES is this same candidate seen
+    // twice: a resumed run after a partial publish (0.2.2 stopped with two of
+    // five packages live) must finish the release, not die at its own
+    // artifacts. Matching dist.integrity to the candidate hash is the proof;
+    // anything else occupying the version is a hard stop.
+    const published = await metadata(artifact);
+    if (published) {
+      const integrity = 'sha512-' + createHash('sha512').update(data).digest('base64');
+      if (published.dist?.integrity !== integrity) {
+        throw new Error(`Version occupied by different bytes: ${artifact.name}@${artifact.version}`);
+      }
+      console.log(`${artifact.name}@${artifact.version} already on the registry with this candidate's integrity — resuming.`);
+      artifact.alreadyPublished = true;
+    }
   }
   if (mode === '--check') return;
   if (process.env.GITHUB_REPOSITORY !== candidate.repository
@@ -93,8 +108,14 @@ async function main() {
     for (const artifact of candidate.artifacts) {
       const entry = { name: artifact.name, version: artifact.version, sha256: artifact.sha256, status: 'attempting' };
       receipt.artifacts.push(entry); await save();
-      execFileSync('npm', ['publish', resolve('.release-candidate', artifact.filename), '--access=public', '--ignore-scripts', '--registry=https://registry.npmjs.org/'], { stdio: 'inherit', timeout: 120000 });
-      entry.status = 'published'; await save();
+      if (artifact.alreadyPublished) {
+        // Same bytes, same version — the registry write already happened in an
+        // earlier attempt; verify rather than republish.
+        entry.status = 'already-published'; await save();
+      } else {
+        execFileSync('npm', ['publish', resolve('.release-candidate', artifact.filename), '--access=public', '--ignore-scripts', '--registry=https://registry.npmjs.org/'], { stdio: 'inherit', timeout: 120000 });
+        entry.status = 'published'; await save();
+      }
       const integrity = 'sha512-' + createHash('sha512').update(bytes.get(artifact.name)).digest('base64');
       await awaitPublishedIntegrity({ artifact, integrity, lookup: metadata });
       entry.status = 'integrity-verified'; await save();
