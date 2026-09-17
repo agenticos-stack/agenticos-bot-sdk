@@ -56,3 +56,7 @@ dialog.bot-drawer { box-sizing: border-box; width: min(640px, 100vw); max-width:
 .bot-drawer-body { min-height: 0; overflow: auto; overscroll-behavior: contain; padding: var(--bot-space-6); overflow-wrap: anywhere; }
 @media (pointer: coarse) { :root { --bot-control-height: 44px; } .bot-input.bot-input { font-size: 16px; } }
 @media (max-width: 600px) { dialog.bot-drawer { width: 100%; } .bot-drawer-body { padding: var(--bot-space-4); } }
+
+/* The chrome the client modules render — steps rail, toast card, skeleton —
+ * lives in client/chrome.css so a canvas only pays for it when it adopts
+ * those modules. */
