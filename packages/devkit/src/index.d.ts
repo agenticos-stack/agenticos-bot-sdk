@@ -30,10 +30,13 @@ export interface PackageReleaseEvidence {
   sha256: string;
   byteSize: number;
   definition: GadgetDefinitionV1;
+  /** Present when a clientJs budget was declared at build time. */
+  clientBytes?: number;
   files: Record<string, string>;
   provenance: {
     status: "incomplete-local-evidence";
     sourceCommit: null;
+    lockfile: string | null;
     lockfileSha256: string | null;
     /** Manifest compatibility data is retained, not certified. */
     runtimeCompatibility: unknown;
@@ -54,14 +57,36 @@ export interface PackagePackResult extends Omit<PackageIntegrityResult, "scope">
 
 /** Requires explicit trustSource:true at runtime. Runs test, build, then validate. */
 export function checkGadgetPackage(directory: string, options?: PackageCheckOptions): Promise<PackageCheckResult>;
+
+export type PackageByteBudget = number | { limit: number; reason?: string };
+export interface PackageBuildOptions {
+  /** Parsed gadget definition; falls back to the package's definition.json. */
+  definition?: GadgetDefinitionV1;
+  /** Members whose content is generated rather than read from src/ (e.g. a bundled client.js). */
+  generatedMembers?: Record<string, () => string | Promise<string>>;
+  /** Expected storage schema version; the manifest must declare it. */
+  storageSchemaVersion?: number;
+  budgets?: { clientJs?: PackageByteBudget; archive?: PackageByteBudget };
+  /** Defaults to <package>/dist. */
+  outputDir?: string;
+}
+export interface PackageValidateOptions {
+  definition?: GadgetDefinitionV1;
+  generatedMembers?: Record<string, () => string | Promise<string>>;
+  outputDir?: string;
+}
+/** Fails when a packed file imports a flat sibling that manifest.files does not pack. */
+export function assertPackedImports(files: Record<string, string>): void;
+/** Fails when manifest.storageSchemaVersion is absent, malformed or differs from the code's version. */
+export function assertStorageSchemaDeclaration(manifest: { storageSchemaVersion?: unknown; files?: string[] }, current: number): number;
 /** Writes the app's dist artifact and release.json, never publishes it. */
-export function buildPackage(directory: string): Promise<{
+export function buildPackage(directory: string, options?: PackageBuildOptions): Promise<{
   /** Exposed as a byte view; the Node implementation returns a Buffer subtype. */
   bytes: Uint8Array;
   files: Record<string, string>;
   release: PackageReleaseEvidence;
 }>;
-export function validatePackage(directory: string): Promise<PackageIntegrityResult>;
+export function validatePackage(directory: string, options?: PackageValidateOptions): Promise<PackageIntegrityResult>;
 /** Requires an explicit .gadget output and trustSource:true; refuses overwrite. */
 export function packGadgetPackage(
   directory: string,

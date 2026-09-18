@@ -183,6 +183,85 @@ test('init rejects secret/hidden entries and symlinks before creating destinatio
   await assert.rejects(devkit.initGadgetPackage(resolve(sandbox, 'links'), { template: root, name: 'safe' }), /symlinks/);
 });
 
+test('generated members pack without a src file and validate by regeneration', async () => {
+  const root = await fixture();
+  const manifest = JSON.parse(await readFile(resolve(root, 'manifest.json'), 'utf8'));
+  manifest.files = ['client.js', 'manifest.json', 'server.js', 'agent.md'];
+  await writeFile(resolve(root, 'manifest.json'), JSON.stringify(manifest));
+  const generatedMembers = {
+    'client.js': async () => 'export const bundled = 41 + 1;\n',
+    'manifest.json': async () => readFile(resolve(root, 'manifest.json'), 'utf8')
+  };
+  const { release } = await devkit.buildPackage(root, { generatedMembers });
+  assert.equal(release.files['client.js'] !== undefined, true);
+  await devkit.validatePackage(root, { generatedMembers });
+  // A member that drifts from its generator fails validation.
+  await writeFile(resolve(root, 'manifest.json'), JSON.stringify({ ...manifest, touched: true }));
+  await assert.rejects(devkit.validatePackage(root, { generatedMembers }), /differs from current source|metadata differs/);
+});
+
+test('packed imports must resolve to packed members', async () => {
+  const root = await fixture();
+  await writeFile(resolve(root, 'src/server.js'), 'import { x } from "./helpers.js";\nexport default class Notes {}\n');
+  await assert.rejects(devkit.buildPackage(root), /missing imported modules.*server\.js imports \.\/helpers\.js/);
+  assert.throws(() => devkit.assertPackedImports({ 'a.js': 'import "./b.js";' }), /a\.js imports \.\/b\.js/);
+  assert.doesNotThrow(() => devkit.assertPackedImports({ 'client.js': 'import("./anything.js");' }));
+});
+
+test('storageSchemaVersion asserts the manifest declaration against the code version', async () => {
+  const root = await fixture();
+  const manifest = JSON.parse(await readFile(resolve(root, 'manifest.json'), 'utf8'));
+  await assert.rejects(devkit.buildPackage(root, { storageSchemaVersion: 1 }), /declare storageSchemaVersion/);
+  manifest.storageSchemaVersion = 2;
+  manifest.files.push('manifest.json');
+  await writeFile(resolve(root, 'manifest.json'), JSON.stringify(manifest));
+  const generatedMembers = { 'manifest.json': async () => readFile(resolve(root, 'manifest.json'), 'utf8') };
+  await assert.rejects(devkit.buildPackage(root, { storageSchemaVersion: 1, generatedMembers }), /declares storageSchemaVersion 2, but storage\.js migrates to 1/);
+  manifest.storageSchemaVersion = 1;
+  await writeFile(resolve(root, 'manifest.json'), JSON.stringify(manifest));
+  await devkit.buildPackage(root, { storageSchemaVersion: 1, generatedMembers });
+  assert.equal(devkit.assertStorageSchemaDeclaration(manifest, 1), 1);
+});
+
+test('caller-supplied budgets fire with the reason they guard', async () => {
+  const root = await fixture();
+  const manifest = JSON.parse(await readFile(resolve(root, 'manifest.json'), 'utf8'));
+  manifest.files = ['client.js', 'server.js', 'agent.md'];
+  await writeFile(resolve(root, 'manifest.json'), JSON.stringify(manifest));
+  const generatedMembers = { 'client.js': async () => 'x'.repeat(200) };
+  await assert.rejects(
+    devkit.buildPackage(root, { generatedMembers, budgets: { clientJs: { limit: 100, reason: 'the authoring store trims reads past this' } } }),
+    /client\.js is 200 bytes; the declared budget is 100 — the authoring store trims reads past this\./
+  );
+  await assert.rejects(
+    devkit.buildPackage(root, { generatedMembers, budgets: { clientJs: 300, archive: 10 } }),
+    /Archive is \d+ bytes; the declared budget is 10\./
+  );
+  await assert.rejects(devkit.buildPackage(root, { generatedMembers, budgets: { archive: 0 } }), /positive integer/);
+  manifest.files = manifest.files.filter(name => name !== 'client.js');
+  await writeFile(resolve(root, 'manifest.json'), JSON.stringify(manifest));
+  await assert.rejects(devkit.buildPackage(root, { budgets: { clientJs: 1 } }), /client\.js is not a packed member/);
+});
+
+test('definition may arrive as an object; pnpm lockfiles record provenance', async () => {
+  const root = await fixture();
+  await rm(resolve(root, 'definition.json'));
+  await assert.rejects(devkit.buildPackage(root), /ENOENT|no such file/);
+  const { release } = await devkit.buildPackage(root, { definition });
+  assert.equal(release.blueprintKey, 'test_notes');
+  await writeFile(resolve(root, 'pnpm-lock.yaml'), 'lockfileVersion: 9\n');
+  const again = await devkit.buildPackage(root, { definition });
+  assert.equal(again.release.provenance.lockfile, 'pnpm-lock.yaml');
+});
+
+test('outputDir redirects the artifact and release evidence', async () => {
+  const root = await fixture();
+  const out = resolve(sandbox, 'elsewhere');
+  const { release } = await devkit.buildPackage(root, { outputDir: out });
+  assert.equal((await readFile(resolve(out, 'release.json'), 'utf8')).includes(release.sha256), true);
+  await devkit.validatePackage(root, { outputDir: out });
+});
+
 test('CLI rejects unknown and duplicate options', () => {
   const cli = resolve(consumer, 'node_modules/@agenticos-dev/bot-devkit/src/cli.mjs');
   for (const args of [['check', consumer, '--no-sandbox'], ['check', consumer, '--trust-source', '--trust-source'], ['pack', consumer, '--output']]) {

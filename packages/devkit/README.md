@@ -64,23 +64,40 @@ await validatePackage(process.cwd());
 
 `definition.json` is the existing canonical `gadget.definition.v1` definition,
 not a new SDK schema. Its key must equal `blueprintKey`; the host still selects
-publication identity and authority. Every listed member is read from flat
-`src/<name>`. The build helper does not bundle code or resolve dependencies.
+publication identity and authority. An app whose definition is authored in
+another source format passes it as the `definition` option instead of the file.
+Every listed member is read from flat `src/<name>`, or produced by a
+`generatedMembers` entry — a `client.js` bundle and a packed `manifest.json`
+are the intended cases. The build helper does not bundle code or resolve
+dependencies; the app's own bundler output is what a generated member returns.
 Relative source paths/symlinks cannot escape the package directory; a symlinked
 `dist` or output file is refused. The application's ordinary build overwrites
 its own `dist` files; **pack's deliverable output never overwrites**.
 
-The builder uses the canonical platform codec and writes a `.gadget` archive
-and `dist/release.json`. Validation checks definition/manifest identity, current
-metadata, current source text, archive bytes/size/hash, exact member set and
-member hashes. A self-consistent but stale archive fails validation.
+`buildPackage(directory, options)` and `validatePackage(directory, options)`
+accept `definition`, `generatedMembers`, `outputDir`, `storageSchemaVersion`
+and `budgets`. `storageSchemaVersion` requires `manifest.json` to ship inside
+the archive and asserts its declaration matches the version the storage code
+migrates to. `budgets.clientJs` and `budgets.archive` are byte limits — a
+number, or `{ limit, reason }` so the failure message states what the ceiling
+guards. `assertPackedImports(files)` rejects a JavaScript member that imports
+a relative file absent from the archive. Validation regenerates generated
+members and compares rather than reading `src/` paths that do not exist.
 
-Release evidence records a package-lock hash if present and preserves optional
-manifest `compatibility` metadata. Provenance is explicitly incomplete:
-`sourceCommit: null`, `status: "incomplete-local-evidence"`. Compatibility is a
-declared value, not a tested compatibility claim. Full source-commit provenance,
-other lockfile formats, host runtime acceptance and release signing are not
-implemented. Metadata validation is not a source/privacy audit.
+The builder uses the canonical platform codec and writes a `.gadget` archive
+and `dist/release.json` (`outputDir` redirects both). Validation checks
+definition/manifest identity, current metadata, current source text, archive
+bytes/size/hash, exact member set and member hashes. A self-consistent but
+stale archive fails validation.
+
+Release evidence records a `package-lock.json` or `pnpm-lock.yaml` hash when
+present, exposes `clientBytes` when a clientJs budget was declared, and
+preserves optional manifest `compatibility` metadata. Provenance is explicitly
+incomplete: `sourceCommit: null`, `status: "incomplete-local-evidence"`.
+Compatibility is a declared value, not a tested compatibility claim. Full
+source-commit provenance, other lockfile formats, host runtime acceptance and
+release signing are not implemented. Metadata validation is not a
+source/privacy audit.
 
 ## Focused verification
 

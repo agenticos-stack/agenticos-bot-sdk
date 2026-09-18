@@ -113,7 +113,7 @@ test('the tag is distinctive enough not to collide with gadget data', () => {
 test('bytes leave a real local session as base64, not one key per byte', async () => {
   const { createLocalSession } = await import('../src/local-session.js');
   const session = await createLocalSession({
-    origins: ['http://social.localhost:18000'], allowedMethods: ['bytes'],
+    origins: ['http://social.localhost:18000'], allowedHostnames: ['localhost', '127.0.0.1', 'social.localhost'], allowedMethods: ['bytes'],
     modules: { 'server.js': `import {DurableObject} from 'cloudflare:workers';
       export class Gadget extends DurableObject {
         bytes() { return { mime: 'image/jpeg', total: 1000, bytes: new Uint8Array(1000).fill(7) }; }

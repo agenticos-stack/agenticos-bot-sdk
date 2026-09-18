@@ -1,13 +1,29 @@
 {
   "name": "@agenticos-dev/bot-testkit",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "type": "module",
   "exports": {
-    ".": "./src/index.js",
-    "./local-session": "./src/local-session.js",
-    "./local-state": "./src/local-state.js",
-    "./rpc-bytes": "./src/rpc-bytes.js"
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js",
+      "default": "./src/index.js"
+    },
+    "./local-session": {
+      "types": "./src/local-session.d.ts",
+      "import": "./src/local-session.js",
+      "default": "./src/local-session.js"
+    },
+    "./local-state": {
+      "types": "./src/local-state.d.ts",
+      "import": "./src/local-state.js",
+      "default": "./src/local-state.js"
+    },
+    "./rpc-bytes": {
+      "types": "./src/rpc-bytes.d.ts",
+      "import": "./src/rpc-bytes.js",
+      "default": "./src/rpc-bytes.js"
+    }
   },
   "files": [
     "src",

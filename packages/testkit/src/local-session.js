@@ -39,16 +39,18 @@ async function sessionToken(stateDirectory) {
  * createFacetTestkit. Without it the gadget is loaded with an empty env.
  * Identity and method admission are host-owned, not fields supplied by callers.
  * No outbound network/bindings are supplied by the underlying facet testkit. */
-export async function createLocalSession({ modules, allowedMethods, seed = [], origins, stateDirectory, doors, maxRequestBytes = 65536 }) {
+export async function createLocalSession({ modules, allowedMethods, seed = [], origins, allowedHostnames = ['localhost', '127.0.0.1'], stateDirectory, doors, maxRequestBytes = 65536 }) {
   if (!Number.isSafeInteger(maxRequestBytes) || maxRequestBytes < 1 || maxRequestBytes > 4 * 1024 * 1024)
     throw new TypeError('maxRequestBytes must be between 1 and 4194304');
+  if (!Array.isArray(allowedHostnames) || !allowedHostnames.length ||
+      allowedHostnames.some(value => typeof value !== 'string' || !value))
+    throw new TypeError('allowedHostnames must be a non-empty array of hostnames');
   if (!Array.isArray(origins) || !origins.length || origins.some(value => {
     try {
       const url = new URL(value);
-      return url.origin !== value || url.protocol !== 'http:' ||
-        !['localhost', '127.0.0.1', 'social.localhost'].includes(url.hostname);
+      return url.origin !== value || url.protocol !== 'http:' || !allowedHostnames.includes(url.hostname);
     } catch { return true; }
-  })) throw new TypeError('Explicit HTTP loopback origins required');
+  })) throw new TypeError('Explicit HTTP origins on admitted hostnames required');
   if (!Array.isArray(seed)) throw new TypeError('seed must be an array');
   const methods = [...new Set([...allowedMethods, ...seed.map(call => call.method)])];
   // Passed straight through: this adapter owns identity and method admission,
