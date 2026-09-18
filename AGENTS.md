@@ -63,6 +63,11 @@ path, and make the fork visible when it happens anyway."
 - **Consume packages as dependencies**, never by `BOT_SDK_SOURCE` path.
 - **One entry artifact, split source.** `client.js` is bundled from
   `src/src/client/*.js`; the sandbox loads exactly one file.
+- **Bundling stays bot-side — that is deliberate, not un-migrated.** Each
+  bot keeps its own `client.mjs` (esbuild config, Svelte compile options,
+  banner/minify choices) because those settings are per-bot: devkit owns
+  the archive contract and hands `client.js` to `buildPackage` as a
+  generated member — the bundler itself is the bot's own.
 - **No bot names in generic packages.** Hostnames, keys and labels are
   caller-supplied.
 - **Continuity and parity tests read both sides from source.** A test that
