@@ -1,6 +1,6 @@
 {
   "name": "@agenticos-dev/bot-contract",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "private": false,
   "type": "module",
   "types": "./src/index.d.ts",
