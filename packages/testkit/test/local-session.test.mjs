@@ -6,9 +6,20 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { encodeBytes, decodeBytes } from '../src/rpc-bytes.js';
 
+test('origins outside the admitted hostnames are refused at construction', async () => {
+  // A bot's gateway name is the caller's to declare; the default rail admits
+  // loopback only, and a remote origin is refused before any state exists.
+  await assert.rejects(createLocalSession({
+    origins: ['http://social.localhost:18000'], allowedMethods: []
+  }), /admitted hostnames/);
+  await assert.rejects(createLocalSession({
+    origins: ['https://localhost:18000'], allowedMethods: []
+  }), /admitted hostnames/);
+});
+
 test('an explicitly larger local request preserves binary arguments through SQLite', async () => {
   const origin='http://social.localhost:18000';
-  const session=await createLocalSession({origins:[origin],allowedMethods:['store'],maxRequestBytes:200000,
+  const session=await createLocalSession({origins:[origin],allowedHostnames:['localhost','127.0.0.1','social.localhost'],allowedMethods:['store'],maxRequestBytes:200000,
     modules:{'server.js':`import {DurableObject} from 'cloudflare:workers';
       export class Gadget extends DurableObject {
         store(bytes) {
@@ -30,7 +41,7 @@ test('an explicitly larger local request preserves binary arguments through SQLi
 
 test('local session uses SQLite, host identity and denies unadmitted calls', async () => {
   const session = await createLocalSession({
-    origins: ['http://social.localhost:18000'], allowedMethods: ['read', 'write'],
+    origins: ['http://social.localhost:18000'], allowedHostnames: ['localhost', '127.0.0.1', 'social.localhost'], allowedMethods: ['read', 'write'],
     modules: { 'server.js': `import {DurableObject} from 'cloudflare:workers';
       export class Gadget extends DurableObject {
         constructor(ctx, env) { super(ctx, env); this.sql=ctx.storage.sql; this.sql.exec('CREATE TABLE IF NOT EXISTS notes (text TEXT)'); }
@@ -66,7 +77,7 @@ test('a session token outlives the process that minted it', async () => {
   const root = await mkdtemp(join(tmpdir(), 'bot-token-'));
   const stateDirectory = join(root, 'runtime');
   const options = {
-    origins: ['http://social.localhost:18000'],
+    origins: ['http://social.localhost:18000'], allowedHostnames: ['localhost', '127.0.0.1', 'social.localhost'],
     allowedMethods: ['read'],
     stateDirectory,
     modules: { 'server.js': `import {DurableObject} from 'cloudflare:workers';
@@ -93,7 +104,7 @@ test('a session token outlives the process that minted it', async () => {
 
 test('an ephemeral session still gets a random token, since there is nothing to return to', async () => {
   const options = {
-    origins: ['http://social.localhost:18000'],
+    origins: ['http://social.localhost:18000'], allowedHostnames: ['localhost', '127.0.0.1', 'social.localhost'],
     allowedMethods: ['read'],
     modules: { 'server.js': `import {DurableObject} from 'cloudflare:workers';
       export class Gadget extends DurableObject { read() { return 'ok'; } }` }
@@ -118,7 +129,7 @@ test('calls overlap instead of queueing, and disposal still waits for them', asy
    * that was in SQLite the whole time.
    */
   const session = await createLocalSession({
-    origins: ['http://social.localhost:18000'], allowedMethods: ['slow', 'peak'],
+    origins: ['http://social.localhost:18000'], allowedHostnames: ['localhost', '127.0.0.1', 'social.localhost'], allowedMethods: ['slow', 'peak'],
     modules: { 'server.js': `import {DurableObject} from 'cloudflare:workers';
       export class Gadget extends DurableObject {
         constructor(ctx, env) { super(ctx, env); this.live = 0; this.high = 0; }
@@ -155,7 +166,7 @@ test('calls overlap instead of queueing, and disposal still waits for them', asy
 test('disposal drains the calls it admitted', async () => {
   let finished = 0;
   const session = await createLocalSession({
-    origins: ['http://social.localhost:18000'], allowedMethods: ['slow'],
+    origins: ['http://social.localhost:18000'], allowedHostnames: ['localhost', '127.0.0.1', 'social.localhost'], allowedMethods: ['slow'],
     modules: { 'server.js': `import {DurableObject} from 'cloudflare:workers';
       export class Gadget extends DurableObject {
         async slow() { await scheduler.wait(60); return true; }

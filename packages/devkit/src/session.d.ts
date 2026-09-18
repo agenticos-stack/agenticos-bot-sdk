@@ -94,3 +94,30 @@ export declare function forgetDevSession(input: {
 }): Promise<boolean>;
 
 export declare function devSessionEnv(session: DevSession): Record<string, string>;
+
+/** A trimmed developer key, or null when the environment did not carry one. */
+export declare function readDeveloperKey(value: unknown): string | null;
+
+/**
+ * Refuse a key that is not shaped like a personal access token before it
+ * reaches the network. `envVar` names the caller's own variable in the error.
+ */
+export declare function assertDeveloperKey(key: unknown, envVar: string): void;
+
+/**
+ * `POST /v2/gadget-dev/sessions` authenticated by a developer key (PAT)
+ * carrying `gadget_dev.session` — the key flow beside the OTP credential flow.
+ * The key never appears in an error.
+ */
+export declare function mintGadgetDevSession(input: {
+  apiOrigin?: string;
+  developerKey: string;
+  /** Caller's own environment variable name, for error messages. */
+  envVar?: string;
+  gadgetKey: string;
+  title?: string;
+  fetcher?: typeof fetch;
+}): Promise<{ devToken: string; workspaceId: string; expiresAtMs: number }>;
+
+/** Local time the session stops working, for one line on stdout. */
+export declare function describeExpiry(expiresAtMs: number): string;

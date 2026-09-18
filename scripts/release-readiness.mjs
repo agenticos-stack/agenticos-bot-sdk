@@ -9,7 +9,8 @@ export const RELEASE_PACKAGES = Object.freeze([
   { directory: "archive-tools", name: "@agenticos-dev/bot-archive-tools" },
   { directory: "sdk", name: "@agenticos-dev/bot-sdk" },
   { directory: "shell", name: "@agenticos-dev/bot-shell" },
-  { directory: "devkit", name: "@agenticos-dev/bot-devkit" }
+  { directory: "devkit", name: "@agenticos-dev/bot-devkit" },
+  { directory: "testkit", name: "@agenticos-dev/bot-testkit" }
 ]);
 const repository = "agenticos-stack/agenticos-bot-sdk";
 const load = async path => JSON.parse(await readFile(path, "utf8"));

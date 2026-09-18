@@ -64,23 +64,40 @@ await validatePackage(process.cwd());
 
 `definition.json` is the existing canonical `gadget.definition.v1` definition,
 not a new SDK schema. Its key must equal `blueprintKey`; the host still selects
-publication identity and authority. Every listed member is read from flat
-`src/<name>`. The build helper does not bundle code or resolve dependencies.
+publication identity and authority. An app whose definition is authored in
+another source format passes it as the `definition` option instead of the file.
+Every listed member is read from flat `src/<name>`, or produced by a
+`generatedMembers` entry — a `client.js` bundle and a packed `manifest.json`
+are the intended cases. The build helper does not bundle code or resolve
+dependencies; the app's own bundler output is what a generated member returns.
 Relative source paths/symlinks cannot escape the package directory; a symlinked
 `dist` or output file is refused. The application's ordinary build overwrites
 its own `dist` files; **pack's deliverable output never overwrites**.
 
-The builder uses the canonical platform codec and writes a `.gadget` archive
-and `dist/release.json`. Validation checks definition/manifest identity, current
-metadata, current source text, archive bytes/size/hash, exact member set and
-member hashes. A self-consistent but stale archive fails validation.
+`buildPackage(directory, options)` and `validatePackage(directory, options)`
+accept `definition`, `generatedMembers`, `outputDir`, `storageSchemaVersion`
+and `budgets`. `storageSchemaVersion` requires `manifest.json` to ship inside
+the archive and asserts its declaration matches the version the storage code
+migrates to. `budgets.clientJs` and `budgets.archive` are byte limits — a
+number, or `{ limit, reason }` so the failure message states what the ceiling
+guards. `assertPackedImports(files)` rejects a JavaScript member that imports
+a relative file absent from the archive. Validation regenerates generated
+members and compares rather than reading `src/` paths that do not exist.
 
-Release evidence records a package-lock hash if present and preserves optional
-manifest `compatibility` metadata. Provenance is explicitly incomplete:
-`sourceCommit: null`, `status: "incomplete-local-evidence"`. Compatibility is a
-declared value, not a tested compatibility claim. Full source-commit provenance,
-other lockfile formats, host runtime acceptance and release signing are not
-implemented. Metadata validation is not a source/privacy audit.
+The builder uses the canonical platform codec and writes a `.gadget` archive
+and `dist/release.json` (`outputDir` redirects both). Validation checks
+definition/manifest identity, current metadata, current source text, archive
+bytes/size/hash, exact member set and member hashes. A self-consistent but
+stale archive fails validation.
+
+Release evidence records a `package-lock.json` or `pnpm-lock.yaml` hash when
+present, exposes `clientBytes` when a clientJs budget was declared, and
+preserves optional manifest `compatibility` metadata. Provenance is explicitly
+incomplete: `sourceCommit: null`, `status: "incomplete-local-evidence"`.
+Compatibility is a declared value, not a tested compatibility claim. Full
+source-commit provenance, other lockfile formats, host runtime acceptance and
+release signing are not implemented. Metadata validation is not a
+source/privacy audit.
 
 ## Focused verification
 
@@ -111,3 +128,25 @@ Declarations preserve `unknown` for unchecked package names, compatibility
 metadata and embedded definitions. Build bytes are exposed as `Uint8Array` (the
 implementation returns its Node Buffer subtype), avoiding an ambient Node-types
 dependency for consumers that only inspect package evidence.
+
+## Connected development modules
+
+Subpath exports carry the helpers a gadget's local runtime and development
+rigs share, so a bot repository consumes them instead of maintaining a fork:
+
+- `./doors` — door-grant state: `createDoorRuntime`, refusal handling
+  (`DoorRefusal`, `isRefusal`, `doorFailureResponse`), and the
+  `grantReceiptOutcome` contract the canvas exercises at the API boundary.
+- `./host-events` — event-stream continuity helpers for hosts that replay
+  runtime events across a reconnect.
+- `./origins` — development-origin validation. The caller supplies its own
+  hostname and environment-variable names; no bot name is built in.
+- `./session` — development-session minting: the credential/OTP flow plus the
+  developer-key (PAT) flow.
+- `./redefinitions` — `assertNoSdkRedefinitions` scans package sources for
+  local declarations that collide with SDK export names, so a shadowed helper
+  fails review instead of drifting silently.
+- `./scaffold` — `scaffoldFiles(name)` returns the generated files
+  `initGadgetPackage` emits (AGENTS.md playbook, local RPC contract, fixture
+  rig, local runtime, continuity test, vendor sync script). `init` writes only
+  paths the template did not ship; `scaffold: false` restores the bare copy.
