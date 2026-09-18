@@ -18,6 +18,15 @@ import {
   type PackageReleaseEvidence, type PackageCheckStep
 } from '@agenticos-dev/bot-devkit';
 import SplitView, { type GadgetSplitViewProps } from '@agenticos-dev/bot-shell/GadgetSplitView.svelte';
+import { createDoorRuntime, grantReceiptOutcome, DoorRefusal, isRefusal, doorFailureResponse } from '@agenticos-dev/bot-devkit/doors';
+import { attachHostEvents } from '@agenticos-dev/bot-devkit/host-events';
+import {
+  PRODUCTION_API_ORIGINS, assertLocalApiOrigin, assertRemoteApiOrigin,
+  assertLocalFrontendOrigin, assertGadgetDevWorkspaceId, agentSocketUrl
+} from '@agenticos-dev/bot-devkit/origins';
+import { assertNoSdkRedefinitions } from '@agenticos-dev/bot-devkit/redefinitions';
+import { scaffoldFiles } from '@agenticos-dev/bot-devkit/scaffold';
+import { readDeveloperKey, assertDeveloperKey, mintGadgetDevSession, describeExpiry } from '@agenticos-dev/bot-devkit/session';
 import type { ComponentProps, Snippet } from 'svelte';
 
 const definition: GadgetDefinitionV1 = {
@@ -93,6 +102,19 @@ readBlueprintArchive(bytes);
 checkGadgetPackage('./notes', { trustSource: true, run: async () => ({ status: 0 }) });
 // @ts-expect-error internal implementation subpaths are not public exports
 await import('@agenticos-dev/bot-devkit/src/index.js');
-void [issue, vocabulary, schema, stateLimit, checkScope, release, integrity, packScope,
-  copyScope, declaredProps, missingCanvas, invalidScroll, unsupported, privileged,
-  assignment, unknownField, assumedName];
+
+const scaffolded: Record<string, string> = scaffoldFiles('typed-gadget');
+assertNoSdkRedefinitions({ files: { 'client.js': 'export const x = 1;' }, sdkExports: ['x'] });
+assertLocalApiOrigin('http://127.0.0.1:8787');
+assertRemoteApiOrigin(PRODUCTION_API_ORIGINS[0]);
+assertLocalFrontendOrigin('http://gadget.localhost', ['gadget.localhost']);
+assertGadgetDevWorkspaceId('ws_1', 'AGENTICOS_WORKSPACE');
+const socket: string = agentSocketUrl('http://127.0.0.1:8787', 'ws_1', 'ticket');
+const doorError: DoorRefusal = new DoorRefusal('closed');
+const refused: boolean = isRefusal(doorError);
+const doorStatus = doorFailureResponse(doorError, 'unknown');
+const key: string | null = readDeveloperKey('KEY=abc\n');
+assertDeveloperKey('ak_test', 'AGENTICOS_DEV_KEY');
+const expiry: string = describeExpiry(Date.now());
+void [scaffolded, socket, createDoorRuntime, grantReceiptOutcome, attachHostEvents,
+  mintGadgetDevSession, refused, doorStatus, key, expiry];

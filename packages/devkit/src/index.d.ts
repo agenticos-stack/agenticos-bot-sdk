@@ -92,8 +92,11 @@ export function packGadgetPackage(
   directory: string,
   options?: PackageCheckOptions & { output?: string }
 ): Promise<PackagePackResult>;
-/** Requires both options at runtime; copies a reviewed local template without install. */
+/** Requires both options at runtime; copies a reviewed local template without install.
+ *  Emits scaffold files (AGENTS.md, rigs, vendor sync, continuity test) into
+ *  paths the template did not ship, unless `scaffold: false`. `emitted` lists
+ *  the paths written. */
 export function initGadgetPackage(
   destination: string,
-  options?: { template?: string; name?: string }
-): Promise<{ directory: string; packageName: string; scope: "local-template-copy-no-install" }>;
+  options?: { template?: string; name?: string; scaffold?: boolean }
+): Promise<{ directory: string; packageName: string; emitted: string[]; scope: "local-template-copy-no-install" }>;

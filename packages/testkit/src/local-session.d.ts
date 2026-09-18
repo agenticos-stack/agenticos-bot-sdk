@@ -21,7 +21,7 @@ export interface CreateLocalSessionOptions {
   origins: string[];
   /**
    * Hostnames `origins` may use. Defaults to loopback only; a caller declares
-   * its own development gateway names (for example `social.localhost`).
+   * its own development gateway names (for example `gadget.localhost`).
    */
   allowedHostnames?: string[];
   /** Absolute directory for persistent local state; omitted means ephemeral. */

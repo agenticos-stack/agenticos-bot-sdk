@@ -174,6 +174,26 @@ test('init copies reviewed local template without running scripts and refuses ov
   await assert.rejects(devkit.initGadgetPackage(output, { template: root, name: 'new-agent' }), /overwrite/);
 });
 
+test('init emits the scaffold rigs and docs a new gadget needs, without overwriting the template', async () => {
+  const root = await fixture();
+  await writeFile(resolve(root, 'AGENTS.md'), 'Template-owned playbook.\n');
+  const output = resolve(sandbox, 'scaffolded');
+  const { emitted } = await devkit.initGadgetPackage(output, { template: root, name: 'my-agent' });
+  // Template-shipped files win; the rest of the scaffold lands beside them.
+  assert.equal(await readFile(resolve(output, 'AGENTS.md'), 'utf8'), 'Template-owned playbook.\n');
+  assert.equal(emitted.includes('AGENTS.md'), false);
+  for (const path of ['scripts/local-runtime.mjs', 'scripts/fixtures.mjs', 'scripts/local-rpc-contract.mjs', 'scripts/vendor-sync.mjs', 'test/continuity.test.mjs']) {
+    assert.ok(emitted.includes(path), `emitted ${path}`);
+  }
+  const runtime = await readFile(resolve(output, 'scripts/local-runtime.mjs'), 'utf8');
+  assert.match(runtime, /@agenticos-dev\/bot-testkit\/local-session/);
+  const sync = await readFile(resolve(output, 'scripts/vendor-sync.mjs'), 'utf8');
+  assert.match(sync, /bot-my-agent/);
+  assert.match(sync, /MY_AGENT_PATH/);
+  const bare = await devkit.initGadgetPackage(resolve(sandbox, 'bare'), { template: root, name: 'plain', scaffold: false });
+  assert.deepEqual(bare.emitted, []);
+});
+
 test('init rejects secret/hidden entries and symlinks before creating destination', async () => {
   const root = await fixture();
   await writeFile(resolve(root, '.env'), 'DO_NOT_COPY=fixture');

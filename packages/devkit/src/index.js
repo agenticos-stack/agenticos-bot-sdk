@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { isDeepStrictEqual } from 'node:util';
 import { readBlueprintArchive, writeBlueprintArchive } from '@agenticos-dev/bot-archive-tools';
 import { validateGadgetDefinition } from '@agenticos-dev/bot-contract';
+import { scaffoldFiles } from './scaffold.mjs';
 
 export const PACKAGE_CHECK_STEPS = Object.freeze(['test', 'build', 'validate']);
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
@@ -231,8 +232,14 @@ export async function packGadgetPackage(directory, options = {}) {
   return { ...result, output, scope: 'local-package-artifact-not-published' };
 }
 
-/** Copies an explicitly chosen local template. No dependency install or script execution. */
-export async function initGadgetPackage(destination, { template, name } = {}) {
+/** Copies an explicitly chosen local template. No dependency install or script execution.
+ *
+ * After the copy, emits the scaffold files every gadget needs — an AGENTS.md
+ * stating the git line and publish/vendor chain, a fixture rig, a
+ * local-runtime rig, the API-side vendor sync script and a continuity test —
+ * into any path the template did not already ship. `scaffold: false` keeps
+ * the bare-copy behaviour. */
+export async function initGadgetPackage(destination, { template, name, scaffold = true } = {}) {
   if (typeof template !== 'string' || !template) throw new Error('Provide --template pointing to a reviewed local template.');
   if (typeof name !== 'string' || !/^[a-z][a-z0-9-]*$/.test(name)) throw new Error('Provide a lowercase package --name.');
   const root = await realpath(resolve(template));
@@ -259,5 +266,15 @@ export async function initGadgetPackage(destination, { template, name } = {}) {
     if (entry === 'package.json') await writeFile(target, encode({ ...packageJSON, name, private: true }), { flag: 'wx' });
     else await copyFile(resolve(root, entry), target, constants.COPYFILE_EXCL);
   }
-  return { directory: output, packageName: name, scope: 'local-template-copy-no-install' };
+  const emitted = [];
+  if (scaffold !== false) {
+    for (const [path, text] of Object.entries(scaffoldFiles(name))) {
+      if (entries.includes(path)) continue;
+      const target = localPath(output, path);
+      await mkdir(dirname(target), { recursive: true });
+      await writeFile(target, text, { flag: 'wx' });
+      emitted.push(path);
+    }
+  }
+  return { directory: output, packageName: name, emitted, scope: 'local-template-copy-no-install' };
 }

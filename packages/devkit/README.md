@@ -128,3 +128,25 @@ Declarations preserve `unknown` for unchecked package names, compatibility
 metadata and embedded definitions. Build bytes are exposed as `Uint8Array` (the
 implementation returns its Node Buffer subtype), avoiding an ambient Node-types
 dependency for consumers that only inspect package evidence.
+
+## Connected development modules
+
+Subpath exports carry the helpers a gadget's local runtime and development
+rigs share, so a bot repository consumes them instead of maintaining a fork:
+
+- `./doors` — door-grant state: `createDoorRuntime`, refusal handling
+  (`DoorRefusal`, `isRefusal`, `doorFailureResponse`), and the
+  `grantReceiptOutcome` contract the canvas exercises at the API boundary.
+- `./host-events` — event-stream continuity helpers for hosts that replay
+  runtime events across a reconnect.
+- `./origins` — development-origin validation. The caller supplies its own
+  hostname and environment-variable names; no bot name is built in.
+- `./session` — development-session minting: the credential/OTP flow plus the
+  developer-key (PAT) flow.
+- `./redefinitions` — `assertNoSdkRedefinitions` scans package sources for
+  local declarations that collide with SDK export names, so a shadowed helper
+  fails review instead of drifting silently.
+- `./scaffold` — `scaffoldFiles(name)` returns the generated files
+  `initGadgetPackage` emits (AGENTS.md playbook, local RPC contract, fixture
+  rig, local runtime, continuity test, vendor sync script). `init` writes only
+  paths the template did not ship; `scaffold: false` restores the bare copy.

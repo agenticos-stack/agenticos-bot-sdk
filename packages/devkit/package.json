@@ -14,6 +14,31 @@
       "types": "./src/session.d.ts",
       "import": "./src/session.mjs",
       "default": "./src/session.mjs"
+    },
+    "./doors": {
+      "types": "./src/doors.d.ts",
+      "import": "./src/doors.mjs",
+      "default": "./src/doors.mjs"
+    },
+    "./host-events": {
+      "types": "./src/host-events.d.ts",
+      "import": "./src/host-events.mjs",
+      "default": "./src/host-events.mjs"
+    },
+    "./origins": {
+      "types": "./src/origins.d.ts",
+      "import": "./src/origins.mjs",
+      "default": "./src/origins.mjs"
+    },
+    "./redefinitions": {
+      "types": "./src/redefinitions.d.ts",
+      "import": "./src/redefinitions.mjs",
+      "default": "./src/redefinitions.mjs"
+    },
+    "./scaffold": {
+      "types": "./src/scaffold.d.ts",
+      "import": "./src/scaffold.mjs",
+      "default": "./src/scaffold.mjs"
     }
   },
   "bin": {
